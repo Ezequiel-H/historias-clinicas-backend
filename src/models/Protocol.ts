@@ -55,8 +55,20 @@ const activitySchema = new Schema<IActivity>(
       {
         value: String,
         label: String,
+        required: {
+          type: Boolean,
+          default: false,
+        },
+        exclusive: {
+          type: Boolean,
+          default: false,
+        },
       },
     ],
+    allowCustomOptions: {
+      type: Boolean,
+      default: false,
+    },
     compoundConfig: {
       fields: [
         {
@@ -84,6 +96,14 @@ const activitySchema = new Schema<IActivity>(
     },
     allowMultiple: Boolean,
     repeatCount: Number,
+    requireDate: {
+      type: Boolean,
+      default: false,
+    },
+    requireTime: {
+      type: Boolean,
+      default: false,
+    },
     helpText: String,
     validationRules: [
       {

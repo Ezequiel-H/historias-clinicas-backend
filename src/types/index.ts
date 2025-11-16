@@ -42,6 +42,8 @@ export interface CompoundFieldConfig {
 export interface SelectOption {
   value: string;
   label: string;
+  required?: boolean;      // Si es true, esta opción debe ser seleccionada obligatoriamente
+  exclusive?: boolean;     // Si es true, si se selecciona esta opción, el paciente NO califica
 }
 
 // Configuración de campo condicional
@@ -74,11 +76,14 @@ export interface IActivity {
   expectedMax?: number;
   decimalPlaces?: number; // Cantidad de decimales para campos numéricos
   options?: SelectOption[];
+  allowCustomOptions?: boolean; // Para select_multiple: permite agregar opciones personalizadas
   compoundConfig?: CompoundFieldConfig;
   conditionalConfig?: ConditionalConfig;
   tableConfig?: TableConfig;
   allowMultiple?: boolean;
   repeatCount?: number;
+  requireDate?: boolean; // Solicitar fecha en que se realizó la actividad
+  requireTime?: boolean; // Solicitar hora en que se realizó la actividad
   helpText?: string;
   validationRules?: IActivityRule[];
 }
