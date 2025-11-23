@@ -50,7 +50,6 @@ const activityValidation = [
       'text_short',
       'text_long',
       'number_simple',
-      'number_range',
       'number_compound',
       'select_single',
       'select_multiple',
@@ -59,7 +58,6 @@ const activityValidation = [
       'time',
       'datetime',
       'file',
-      'table',
       'conditional',
     ])
     .withMessage('Tipo de campo inválido'),

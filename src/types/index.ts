@@ -17,7 +17,6 @@ export type FieldType =
   | 'text_short'
   | 'text_long'
   | 'number_simple'
-  | 'number_range'
   | 'number_compound'
   | 'select_single'
   | 'select_multiple'
@@ -26,7 +25,6 @@ export type FieldType =
   | 'time'
   | 'datetime'
   | 'file'
-  | 'table'
   | 'conditional';
 
 // Configuración de campo compuesto
@@ -52,18 +50,6 @@ export interface ConditionalConfig {
   showWhen: string | boolean;
 }
 
-// Configuración de tabla repetible
-export interface TableConfig {
-  columns: {
-    name: string;
-    label: string;
-    type: FieldType;
-    unit?: string;
-  }[];
-  minRows?: number;
-  maxRows?: number;
-}
-
 // Actividad
 export interface IActivity {
   name: string;
@@ -79,7 +65,6 @@ export interface IActivity {
   allowCustomOptions?: boolean; // Para select_multiple: permite agregar opciones personalizadas
   compoundConfig?: CompoundFieldConfig;
   conditionalConfig?: ConditionalConfig;
-  tableConfig?: TableConfig;
   allowMultiple?: boolean;
   repeatCount?: number;
   requireDate?: boolean; // Solicitar fecha en que se realizó la actividad

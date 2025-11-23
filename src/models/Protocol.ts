@@ -22,7 +22,6 @@ const activitySchema = new Schema<IActivity>(
         'text_short',
         'text_long',
         'number_simple',
-        'number_range',
         'number_compound',
         'select_single',
         'select_multiple',
@@ -31,7 +30,6 @@ const activitySchema = new Schema<IActivity>(
         'time',
         'datetime',
         'file',
-        'table',
         'conditional',
       ],
     },
@@ -81,18 +79,6 @@ const activitySchema = new Schema<IActivity>(
     conditionalConfig: {
       dependsOn: String,
       showWhen: Schema.Types.Mixed,
-    },
-    tableConfig: {
-      columns: [
-        {
-          name: String,
-          label: String,
-          type: String,
-          unit: String,
-        },
-      ],
-      minRows: Number,
-      maxRows: Number,
     },
     allowMultiple: Boolean,
     repeatCount: Number,
