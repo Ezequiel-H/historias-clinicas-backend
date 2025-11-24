@@ -29,6 +29,7 @@ const activitySchema = new Schema<IActivity>(
         'file',
         'conditional',
         'calculated',
+        'medication_tracking', // Seguimiento de medicación (adherencia)
       ],
     },
     required: {
@@ -111,6 +112,21 @@ const activitySchema = new Schema<IActivity>(
     },
     timeIntervalMinutes: Number, // Intervalo fijo en minutos entre mediciones
     calculationFormula: String, // Fórmula para campos calculados
+    // Configuración de seguimiento de medicación (solo si fieldType === 'medication_tracking')
+    medicationTrackingConfig: {
+      medicationName: String, // Nombre del medicamento
+      dosageUnit: String, // Unidad de dosificación (comprimidos, cápsulas, ml, etc.)
+      frequency: {
+        amount: Number, // Cantidad por toma
+        interval: {
+          type: String,
+          enum: ['daily', 'twice_daily', 'three_times_daily', 'every_x_hours', 'weekly', 'custom'],
+        },
+        hoursInterval: Number, // Solo si interval es 'every_x_hours'
+        customDescription: String, // Solo si interval es 'custom'
+      },
+      expectedDailyDose: Number, // Dosis diaria esperada (calculada o manual)
+    },
     helpText: String,
     validationRules: [
       {

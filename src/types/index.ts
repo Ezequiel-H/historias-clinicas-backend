@@ -23,7 +23,8 @@ export type FieldType =
   | 'datetime'             // Fecha y/o hora (configurable)
   | 'file'
   | 'conditional'
-  | 'calculated';
+  | 'calculated'
+  | 'medication_tracking'; // Seguimiento de medicación (adherencia al tratamiento)
 
 // Configuración de campo compuesto
 export interface CompoundFieldConfig {
@@ -46,6 +47,19 @@ export interface SelectOption {
 export interface ConditionalConfig {
   dependsOn: string;
   showWhen: string | boolean;
+}
+
+// Configuración para el seguimiento de medicación
+export interface IMedicationTrackingConfig {
+  medicationName: string;     // Nombre del medicamento
+  dosageUnit: string;         // Unidad de dosificación (ej: "comprimidos", "cápsulas", "ml")
+  frequency: {
+    amount: number;           // Cantidad por toma (ej: 1, 2)
+    interval: 'daily' | 'twice_daily' | 'three_times_daily' | 'every_x_hours' | 'weekly' | 'custom';
+    hoursInterval?: number;   // Solo si interval es 'every_x_hours'
+    customDescription?: string; // Solo si interval es 'custom'
+  };
+  expectedDailyDose?: number; // Dosis diaria esperada (calculada o manual)
 }
 
 // Actividad
@@ -75,6 +89,7 @@ export interface IActivity {
   requireTimePerMeasurement?: boolean; // Si true, hora por cada medición; si false, una hora para todas (solo si allowMultiple)
   timeIntervalMinutes?: number; // Intervalo fijo en minutos entre mediciones (solo si allowMultiple y requireTime). Si está configurado, solo se pregunta la hora de la primera medición
   calculationFormula?: string; // Fórmula para campos calculados (ej: "peso / altura")
+  medicationTrackingConfig?: IMedicationTrackingConfig; // Configuración de seguimiento de medicación
   helpText?: string;
   validationRules?: IActivityRule[];
 }
