@@ -25,7 +25,8 @@ export type FieldType =
   | 'time'
   | 'datetime'
   | 'file'
-  | 'conditional';
+  | 'conditional'
+  | 'calculated';
 
 // Configuración de campo compuesto
 export interface CompoundFieldConfig {
@@ -72,6 +73,7 @@ export interface IActivity {
   requireDatePerMeasurement?: boolean; // Si true, fecha por cada medición; si false, una fecha para todas (solo si allowMultiple)
   requireTimePerMeasurement?: boolean; // Si true, hora por cada medición; si false, una hora para todas (solo si allowMultiple)
   timeIntervalMinutes?: number; // Intervalo fijo en minutos entre mediciones (solo si allowMultiple y requireTime). Si está configurado, solo se pregunta la hora de la primera medición
+  calculationFormula?: string; // Fórmula para campos calculados (ej: "peso / altura")
   helpText?: string;
   validationRules?: IActivityRule[];
 }

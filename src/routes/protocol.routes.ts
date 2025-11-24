@@ -59,6 +59,7 @@ const activityValidation = [
       'datetime',
       'file',
       'conditional',
+      'calculated',
     ])
     .withMessage('Tipo de campo inválido'),
   body('required').isBoolean().withMessage('El campo required debe ser boolean'),
@@ -66,8 +67,23 @@ const activityValidation = [
   body('measurementUnit').optional().trim(),
   body('expectedMin').optional().isNumeric(),
   body('expectedMax').optional().isNumeric(),
+  body('decimalPlaces').optional().isInt({ min: 0, max: 10 }),
   body('options').optional().isArray(),
+  body('allowCustomOptions').optional().isBoolean(),
+  body('compoundConfig').optional().isObject(),
+  body('conditionalConfig').optional().isObject(),
+  body('conditionalConfig.dependsOn').optional().trim(),
+  body('conditionalConfig.showWhen').optional(),
+  body('allowMultiple').optional().isBoolean(),
+  body('repeatCount').optional().isInt({ min: 1, max: 10 }),
+  body('requireDate').optional().isBoolean(),
+  body('requireTime').optional().isBoolean(),
+  body('requireDatePerMeasurement').optional().isBoolean(),
+  body('requireTimePerMeasurement').optional().isBoolean(),
+  body('timeIntervalMinutes').optional().isInt({ min: 1 }),
+  body('calculationFormula').optional().trim(),
   body('helpText').optional().trim(),
+  body('validationRules').optional().isArray(),
 ];
 
 // Validaciones para Clinical Rule

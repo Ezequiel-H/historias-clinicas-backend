@@ -31,6 +31,7 @@ const activitySchema = new Schema<IActivity>(
         'datetime',
         'file',
         'conditional',
+        'calculated',
       ],
     },
     required: {
@@ -99,6 +100,7 @@ const activitySchema = new Schema<IActivity>(
       default: true, // Por defecto, hora por cada medición
     },
     timeIntervalMinutes: Number, // Intervalo fijo en minutos entre mediciones
+    calculationFormula: String, // Fórmula para campos calculados
     helpText: String,
     validationRules: [
       {
