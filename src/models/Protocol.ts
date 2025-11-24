@@ -24,7 +24,6 @@ const activitySchema = new Schema<IActivity>(
         'number_simple',
         'number_compound',
         'select_single',
-        'select_multiple',
         'boolean',
         'datetime', // Fecha y/o hora (configurable)
         'file',
@@ -62,6 +61,10 @@ const activitySchema = new Schema<IActivity>(
         },
       },
     ],
+    selectMultiple: {
+      type: Boolean,
+      default: false,
+    },
     allowCustomOptions: {
       type: Boolean,
       default: false,

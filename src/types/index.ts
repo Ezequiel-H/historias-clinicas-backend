@@ -18,8 +18,7 @@ export type FieldType =
   | 'text_long'
   | 'number_simple'
   | 'number_compound'
-  | 'select_single'
-  | 'select_multiple'
+  | 'select_single'        // Selección (radio/checkbox según selectMultiple)
   | 'boolean'
   | 'datetime'             // Fecha y/o hora (configurable)
   | 'file'
@@ -61,7 +60,8 @@ export interface IActivity {
   expectedMax?: number;
   decimalPlaces?: number; // Cantidad de decimales para campos numéricos
   options?: SelectOption[];
-  allowCustomOptions?: boolean; // Para select_multiple: permite agregar opciones personalizadas
+  selectMultiple?: boolean; // Para select_single: si true, permite selección múltiple (checkbox), si false, selección única (radio)
+  allowCustomOptions?: boolean; // Para select_single con selectMultiple: permite agregar opciones personalizadas
   compoundConfig?: CompoundFieldConfig;
   conditionalConfig?: ConditionalConfig;
   allowMultiple?: boolean;
