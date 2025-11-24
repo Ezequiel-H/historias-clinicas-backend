@@ -26,9 +26,7 @@ const activitySchema = new Schema<IActivity>(
         'select_single',
         'select_multiple',
         'boolean',
-        'date',
-        'time',
-        'datetime',
+        'datetime', // Fecha y/o hora (configurable)
         'file',
         'conditional',
         'calculated',
@@ -83,6 +81,15 @@ const activitySchema = new Schema<IActivity>(
     },
     allowMultiple: Boolean,
     repeatCount: Number,
+    // Configuración para tipo datetime
+    datetimeIncludeDate: {
+      type: Boolean,
+      default: true, // Por defecto, incluir fecha
+    },
+    datetimeIncludeTime: {
+      type: Boolean,
+      default: false, // Por defecto, no incluir hora
+    },
     requireDate: {
       type: Boolean,
       default: false,

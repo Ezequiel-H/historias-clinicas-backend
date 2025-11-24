@@ -54,9 +54,7 @@ const activityValidation = [
       'select_single',
       'select_multiple',
       'boolean',
-      'date',
-      'time',
-      'datetime',
+      'datetime', // Fecha y/o hora (configurable)
       'file',
       'conditional',
       'calculated',
@@ -76,6 +74,8 @@ const activityValidation = [
   body('conditionalConfig.showWhen').optional(),
   body('allowMultiple').optional().isBoolean(),
   body('repeatCount').optional().isInt({ min: 1, max: 10 }),
+  body('datetimeIncludeDate').optional().isBoolean(), // Configuración para tipo datetime
+  body('datetimeIncludeTime').optional().isBoolean(), // Configuración para tipo datetime
   body('requireDate').optional().isBoolean(),
   body('requireTime').optional().isBoolean(),
   body('requireDatePerMeasurement').optional().isBoolean(),

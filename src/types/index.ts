@@ -21,9 +21,7 @@ export type FieldType =
   | 'select_single'
   | 'select_multiple'
   | 'boolean'
-  | 'date'
-  | 'time'
-  | 'datetime'
+  | 'datetime'             // Fecha y/o hora (configurable)
   | 'file'
   | 'conditional'
   | 'calculated';
@@ -68,6 +66,9 @@ export interface IActivity {
   conditionalConfig?: ConditionalConfig;
   allowMultiple?: boolean;
   repeatCount?: number;
+  // Configuración para tipo datetime
+  datetimeIncludeDate?: boolean; // Si true, incluye selector de fecha (solo si fieldType === 'datetime')
+  datetimeIncludeTime?: boolean; // Si true, incluye selector de hora (solo si fieldType === 'datetime')
   requireDate?: boolean; // Solicitar fecha en que se realizó la actividad
   requireTime?: boolean; // Solicitar hora en que se realizó la actividad
   requireDatePerMeasurement?: boolean; // Si true, fecha por cada medición; si false, una fecha para todas (solo si allowMultiple)
