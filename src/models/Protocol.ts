@@ -90,6 +90,15 @@ const activitySchema = new Schema<IActivity>(
       type: Boolean,
       default: false,
     },
+    requireDatePerMeasurement: {
+      type: Boolean,
+      default: true, // Por defecto, fecha por cada medición
+    },
+    requireTimePerMeasurement: {
+      type: Boolean,
+      default: true, // Por defecto, hora por cada medición
+    },
+    timeIntervalMinutes: Number, // Intervalo fijo en minutos entre mediciones
     helpText: String,
     validationRules: [
       {

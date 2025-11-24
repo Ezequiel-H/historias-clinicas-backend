@@ -69,6 +69,9 @@ export interface IActivity {
   repeatCount?: number;
   requireDate?: boolean; // Solicitar fecha en que se realizó la actividad
   requireTime?: boolean; // Solicitar hora en que se realizó la actividad
+  requireDatePerMeasurement?: boolean; // Si true, fecha por cada medición; si false, una fecha para todas (solo si allowMultiple)
+  requireTimePerMeasurement?: boolean; // Si true, hora por cada medición; si false, una hora para todas (solo si allowMultiple)
+  timeIntervalMinutes?: number; // Intervalo fijo en minutos entre mediciones (solo si allowMultiple y requireTime). Si está configurado, solo se pregunta la hora de la primera medición
   helpText?: string;
   validationRules?: IActivityRule[];
 }
