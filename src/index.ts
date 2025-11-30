@@ -7,6 +7,7 @@ import { connectDB } from './config/database';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
 import protocolRoutes from './routes/protocol.routes';
+import templateRoutes from './routes/template.routes';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -58,6 +59,7 @@ app.get('/health', (_req, res) => {
 // Rutas de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/protocols', protocolRoutes);
+app.use('/api/templates', templateRoutes);
 
 // ==========================================
 // MANEJO DE ERRORES
