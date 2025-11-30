@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Protocol } from '../models/Protocol';
+import { Template } from '../models/Template';
 
 export const protocolController = {
   // Obtener todos los protocolos (paginado)
@@ -267,6 +268,73 @@ export const protocolController = {
       res.status(500).json({
         success: false,
         error: 'Error al actualizar visita',
+      });
+    }
+  },
+
+  // Actualizar orden de visitas (múltiples)
+  updateVisitsOrder: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { protocolId } = req.params;
+      const { visitsOrder } = req.body; // Array de { visitId, order }
+
+      if (!Array.isArray(visitsOrder)) {
+        res.status(400).json({
+          success: false,
+          error: 'visitsOrder debe ser un array',
+        });
+        return;
+      }
+
+      // Reintentar en caso de error de versión (hasta 3 intentos)
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts) {
+        try {
+          const protocol = await Protocol.findById(protocolId);
+
+          if (!protocol) {
+            res.status(404).json({
+              success: false,
+              error: 'Protocolo no encontrado',
+            });
+            return;
+          }
+
+          // Actualizar el orden de cada visita
+          visitsOrder.forEach(({ visitId, order }: { visitId: string; order: number }) => {
+            const visit = (protocol.visits as any).id(visitId);
+            if (visit) {
+              visit.order = order;
+            }
+          });
+
+          await protocol.save();
+
+          res.json({
+            success: true,
+            data: protocol.toJSON(),
+            message: 'Orden de visitas actualizado exitosamente',
+          });
+          return; // Éxito, salir del bucle
+        } catch (error: any) {
+          attempts++;
+          // Si es un error de versión y aún hay intentos, reintentar
+          if (error.name === 'VersionError' && attempts < maxAttempts) {
+            // Esperar un poco antes de reintentar
+            await new Promise(resolve => setTimeout(resolve, 100 * attempts));
+            continue;
+          }
+          // Si no es un error de versión o se agotaron los intentos, lanzar el error
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error('Error al actualizar orden de visitas:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error al actualizar el orden de las visitas',
       });
     }
   },
@@ -577,6 +645,71 @@ export const protocolController = {
       res.status(500).json({
         success: false,
         error: 'Error al eliminar regla clínica',
+      });
+    }
+  },
+
+  // Importar plantilla en una visita
+  importTemplate: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { protocolId, visitId } = req.params;
+      const { templateId } = req.body;
+
+      const protocol = await Protocol.findById(protocolId);
+
+      if (!protocol) {
+        res.status(404).json({
+          success: false,
+          error: 'Protocolo no encontrado',
+        });
+        return;
+      }
+
+      const visit = (protocol.visits as any).id(visitId);
+
+      if (!visit) {
+        res.status(404).json({
+          success: false,
+          error: 'Visita no encontrada',
+        });
+        return;
+      }
+
+      const template = await Template.findById(templateId);
+
+      if (!template) {
+        res.status(404).json({
+          success: false,
+          error: 'Plantilla no encontrada',
+        });
+        return;
+      }
+
+      // Copiar actividades de la plantilla a la visita
+      // Generar nuevos IDs para las actividades importadas
+      const importedActivities = template.activities.map((activity: any) => {
+        const activityObj = activity.toObject ? activity.toObject() : activity;
+        // Eliminar el _id para que MongoDB genere uno nuevo
+        delete activityObj._id;
+        delete activityObj.id;
+        // Ajustar el orden para que se agreguen al final
+        activityObj.order = (visit.activities?.length || 0) + (activityObj.order || 0) + 1;
+        return activityObj;
+      });
+
+      visit.activities.push(...importedActivities);
+      await protocol.save();
+
+      res.json({
+        success: true,
+        data: protocol.toJSON(),
+        message: `Plantilla "${template.name}" importada exitosamente. Se agregaron ${importedActivities.length} actividades.`,
+      });
+    } catch (error) {
+      console.error('Error al importar plantilla:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error al importar plantilla',
       });
     }
   },

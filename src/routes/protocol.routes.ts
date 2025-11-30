@@ -163,6 +163,13 @@ router.post(
   protocolController.addVisit
 );
 
+// Actualizar orden de visitas (múltiples) - DEBE IR ANTES de /:visitId
+router.put(
+  '/:protocolId/visits/order',
+  validate([...protocolIdValidation]),
+  protocolController.updateVisitsOrder
+);
+
 // Actualizar visita
 router.put(
   '/:protocolId/visits/:visitId',
@@ -205,6 +212,17 @@ router.delete(
   '/:protocolId/visits/:visitId/activities/:activityId',
   validate([...protocolIdValidation, ...visitIdValidation, ...activityIdValidation]),
   protocolController.deleteActivity
+);
+
+// Importar plantilla en una visita
+router.post(
+  '/:protocolId/visits/:visitId/import-template',
+  validate([
+    ...protocolIdValidation,
+    ...visitIdValidation,
+    body('templateId').isMongoId().withMessage('Template ID inválido'),
+  ]),
+  protocolController.importTemplate
 );
 
 // ==========================================
