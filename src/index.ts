@@ -8,6 +8,7 @@ import { errorHandler, notFound } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
 import protocolRoutes from './routes/protocol.routes';
 import templateRoutes from './routes/template.routes';
+import statsRoutes from './routes/stats.routes';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -60,6 +61,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/protocols', protocolRoutes);
 app.use('/api/templates', templateRoutes);
+app.use('/api/stats', statsRoutes);
 
 // ==========================================
 // MANEJO DE ERRORES
