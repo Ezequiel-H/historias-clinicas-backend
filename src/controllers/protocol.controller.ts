@@ -195,6 +195,63 @@ export const protocolController = {
     }
   },
 
+  // Función helper para obtener la plantilla "Visita Basica" (siempre busca la versión más reciente)
+  getBasicVisitTemplate: async (): Promise<any> => {
+    const templateName = 'Visita Basica';
+    
+    // Siempre buscar la plantilla más reciente por nombre (case-insensitive)
+    let template = await Template.findOne({ 
+      name: { $regex: new RegExp(`^${templateName}$`, 'i') } 
+    });
+    
+    if (!template) {
+      // Si no existe, crear la plantilla con los campos requeridos
+      const basicActivities = [
+        {
+          name: 'nombre_apellido',
+          description: 'Nombre y apellido del paciente',
+          fieldType: 'text_short',
+          required: true,
+          order: 1,
+        },
+        {
+          name: 'dni',
+          description: 'DNI del paciente',
+          fieldType: 'text_short',
+          required: true,
+          order: 2,
+        },
+        {
+          name: 'fecha_visita',
+          description: 'Fecha de la visita',
+          fieldType: 'datetime',
+          required: true,
+          order: 3,
+          datetimeIncludeDate: true,
+          datetimeIncludeTime: false,
+        },
+        {
+          name: 'numero_hoja',
+          description: 'Número de hoja',
+          fieldType: 'number_simple',
+          required: true,
+          order: 4,
+        },
+      ];
+
+      template = new Template({
+        name: 'Visita Basica',
+        description: 'Plantilla básica que se incluye automáticamente en todas las visitas nuevas',
+        activities: basicActivities,
+      });
+
+      await template.save();
+      console.log(`Plantilla "${templateName}" creada automáticamente`);
+    }
+    
+    return template;
+  },
+
   // Agregar visita a protocolo
   addVisit: async (req: Request, res: Response): Promise<void> => {
     try {
@@ -211,13 +268,57 @@ export const protocolController = {
         return;
       }
 
+      // Crear la visita
       protocol.visits.push(visitData);
       await protocol.save();
 
+      // Recargar el protocolo para obtener los IDs correctos
+      const updatedProtocol = await Protocol.findById(protocolId);
+      
+      if (!updatedProtocol) {
+        res.status(500).json({
+          success: false,
+          error: 'Error al recargar el protocolo',
+        });
+        return;
+      }
+
+      // Obtener la visita recién creada (la última en el array)
+      const visitsArray = updatedProtocol.visits as any;
+      const newVisit = visitsArray[visitsArray.length - 1];
+      const visitId = newVisit._id.toString();
+
+      // Buscar la plantilla "visita basica" (siempre busca la versión más reciente)
+      const basicTemplate = await protocolController.getBasicVisitTemplate();
+
+      // Importar automáticamente la plantilla "visita basica" con sus actividades actuales
+      if (basicTemplate && basicTemplate.activities && basicTemplate.activities.length > 0) {
+        const visit = visitsArray.id(visitId);
+        
+        if (visit) {
+          // Copiar actividades de la plantilla a la visita (usando la versión más reciente)
+          const importedActivities = basicTemplate.activities.map((activity: any) => {
+            const activityObj = activity.toObject ? activity.toObject() : activity;
+            // Eliminar el _id para que MongoDB genere uno nuevo
+            delete activityObj._id;
+            delete activityObj.id;
+            // Ajustar el orden para que se agreguen al principio
+            activityObj.order = (visit.activities?.length || 0) + activityObj.order;
+            return activityObj;
+          });
+
+          visit.activities.push(...importedActivities);
+          await updatedProtocol.save();
+        }
+      }
+
+      // Recargar el protocolo final para devolver los datos actualizados
+      const finalProtocol = await Protocol.findById(protocolId);
+
       res.status(201).json({
         success: true,
-        data: protocol.toJSON(),
-        message: 'Visita agregada exitosamente',
+        data: finalProtocol?.toJSON() || updatedProtocol.toJSON(),
+        message: 'Visita agregada exitosamente con la plantilla básica incluida',
       });
     } catch (error) {
       console.error('Error al agregar visita:', error);
