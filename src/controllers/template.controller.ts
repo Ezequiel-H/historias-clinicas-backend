@@ -141,7 +141,7 @@ export const templateController = {
     try {
       const { id } = req.params;
 
-      const template = await Template.findByIdAndDelete(id);
+      const template = await Template.findById(id);
 
       if (!template) {
         res.status(404).json({
@@ -150,6 +150,18 @@ export const templateController = {
         });
         return;
       }
+
+      // Prevenir la eliminación de la plantilla "Visita Basica"
+      const templateName = template.name || '';
+      if (templateName.toLowerCase() === 'visita basica') {
+        res.status(400).json({
+          success: false,
+          error: 'No se puede eliminar la plantilla "Visita Basica". Esta plantilla es requerida por el sistema y se incluye automáticamente en todas las visitas nuevas.',
+        });
+        return;
+      }
+
+      await Template.findByIdAndDelete(id);
 
       res.json({
         success: true,
