@@ -31,13 +31,43 @@ const registerValidation = [
     .withMessage('El nombre es requerido'),
   body('role')
     .optional()
-    .isIn(['admin', 'medico', 'investigador_principal'])
+    .isIn(['admin', 'doctor', 'investigador_principal'])
     .withMessage('Rol inválido'),
+];
+
+const signupValidation = [
+  body('email')
+    .isEmail()
+    .withMessage('Email inválido')
+    .normalizeEmail(),
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('La contraseña debe tener al menos 6 caracteres'),
+  body('firstName')
+    .trim()
+    .notEmpty()
+    .withMessage('El nombre es requerido'),
+  body('lastName')
+    .trim()
+    .notEmpty()
+    .withMessage('El apellido es requerido'),
+  body('licenseNumber')
+    .trim()
+    .notEmpty()
+    .withMessage('El número de licencia es requerido')
+    .isNumeric()
+    .withMessage('El número de licencia debe ser solo números'),
+  body('sealSignaturePhoto')
+    .notEmpty()
+    .withMessage('La foto de sello y firma es requerida')
+    .isString()
+    .withMessage('La foto debe ser una cadena base64 válida'),
 ];
 
 // Rutas públicas
 router.post('/login', validate(loginValidation), authController.login);
 router.post('/logout', authController.logout);
+router.post('/signup', validate(signupValidation), authController.signup);
 
 // Rutas protegidas
 router.get('/me', authMiddleware, authController.getCurrentUser);
