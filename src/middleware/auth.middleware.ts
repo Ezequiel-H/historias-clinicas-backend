@@ -36,10 +36,11 @@ export const authMiddleware = async (
     req.user = decoded;
 
     next();
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Error en authMiddleware:', error);
     res.status(401).json({
       success: false,
-      error: 'Token inválido o expirado',
+      error: error.message || 'Token inválido o expirado',
     });
   }
 };

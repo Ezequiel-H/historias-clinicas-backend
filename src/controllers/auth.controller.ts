@@ -19,8 +19,9 @@ export const authController = {
         return;
       }
 
-      // Verificar si el usuario está activo
-      if (!user.isActive) {
+      // Verificar si el usuario está activo (permitir login a doctores inactivos para que vean su estado)
+      // Los doctores inactivos pueden hacer login pero tendrán acceso limitado
+      if (!user.isActive && user.role !== 'doctor') {
         res.status(401).json({
           success: false,
           error: 'Usuario inactivo',
@@ -121,7 +122,7 @@ export const authController = {
         email,
         password,
         name,
-        role: role || 'medico',
+        role: role || 'doctor',
       });
 
       await user.save();
@@ -136,6 +137,95 @@ export const authController = {
       res.status(500).json({
         success: false,
         error: 'Error al registrar usuario',
+      });
+    }
+  },
+
+  // Registrar nuevo doctor (público)
+  signup: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email, password, firstName, lastName, licenseNumber, sealSignaturePhoto } = req.body;
+
+      // Validar campos requeridos
+      if (!email || !password || !firstName || !lastName || !licenseNumber || !sealSignaturePhoto) {
+        res.status(400).json({
+          success: false,
+          error: 'Todos los campos son requeridos, incluyendo la foto de sello y firma',
+        });
+        return;
+      }
+
+      // Verificar si el usuario ya existe
+      const existingUser = await User.findOne({ email });
+
+      if (existingUser) {
+        res.status(400).json({
+          success: false,
+          error: 'El email ya está registrado',
+        });
+        return;
+      }
+
+      // Verificar si el número de licencia ya existe
+      const existingLicense = await User.findOne({ licenseNumber });
+
+      if (existingLicense) {
+        res.status(400).json({
+          success: false,
+          error: 'El número de licencia ya está registrado',
+        });
+        return;
+      }
+
+      // Crear nombre completo
+      const name = `${firstName} ${lastName}`.trim();
+
+      // Crear usuario doctor
+      const user = new User({
+        email,
+        password,
+        name,
+        firstName,
+        lastName,
+        licenseNumber,
+        sealSignaturePhoto,
+        role: 'doctor',
+        isActive: false, // Requiere aprobación del admin
+      });
+
+      await user.save();
+
+      // Generar token JWT para auto-login
+      const token = generateToken({
+        userId: (user._id as any).toString(),
+        email: user.email,
+        role: user.role,
+      });
+
+      res.status(201).json({
+        success: true,
+        data: {
+          user: user.toJSON(),
+          token,
+        },
+        message: 'Registro exitoso. Su cuenta será activada por un administrador.',
+      });
+    } catch (error: any) {
+      console.error('Error al registrar doctor:', error);
+      
+      // Manejar errores de validación de MongoDB
+      if (error.code === 11000) {
+        const field = Object.keys(error.keyPattern)[0];
+        res.status(400).json({
+          success: false,
+          error: `El ${field === 'email' ? 'email' : 'número de licencia'} ya está registrado`,
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        error: 'Error al registrar doctor',
       });
     }
   },
