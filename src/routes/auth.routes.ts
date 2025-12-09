@@ -64,6 +64,12 @@ const signupValidation = [
     .withMessage('La foto debe ser una cadena base64 válida'),
 ];
 
+const updateUserStatusValidation = [
+  body('isActive')
+    .isBoolean()
+    .withMessage('isActive debe ser un valor booleano'),
+];
+
 // Rutas públicas
 router.post('/login', validate(loginValidation), authController.login);
 router.post('/logout', authController.logout);
@@ -79,6 +85,21 @@ router.post(
   checkRole('admin'),
   validate(registerValidation),
   authController.register
+);
+
+router.get(
+  '/users',
+  authMiddleware,
+  checkRole('admin'),
+  authController.getAllUsers
+);
+
+router.patch(
+  '/users/:id',
+  authMiddleware,
+  checkRole('admin'),
+  validate(updateUserStatusValidation),
+  authController.updateUserStatus
 );
 
 export default router;
