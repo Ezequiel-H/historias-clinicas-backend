@@ -5,7 +5,11 @@ export interface IUser extends Document {
   email: string;
   password: string;
   name: string;
-  role: 'admin' | 'medico' | 'investigador_principal';
+  firstName?: string;
+  lastName?: string;
+  licenseNumber?: string;
+  sealSignaturePhoto?: string; // Base64 encoded image
+  role: 'admin' | 'doctor' | 'investigador_principal';
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

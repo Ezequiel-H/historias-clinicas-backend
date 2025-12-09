@@ -23,13 +23,30 @@ const userSchema = new Schema<IUser>(
       required: [true, 'El nombre es requerido'],
       trim: true,
     },
+    firstName: {
+      type: String,
+      trim: true,
+    },
+    lastName: {
+      type: String,
+      trim: true,
+    },
+    licenseNumber: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true, // Permite múltiples null/undefined
+    },
+    sealSignaturePhoto: {
+      type: String, // Base64 encoded image
+    },
     role: {
       type: String,
       enum: {
-        values: ['admin', 'medico', 'investigador_principal'],
+        values: ['admin', 'doctor', 'investigador_principal'],
         message: 'Rol inválido',
       },
-      default: 'medico',
+      default: 'doctor',
     },
     isActive: {
       type: Boolean,
