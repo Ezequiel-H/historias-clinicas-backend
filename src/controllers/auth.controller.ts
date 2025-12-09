@@ -239,5 +239,83 @@ export const authController = {
       message: 'Logout exitoso',
     });
   },
+
+  // Obtener todos los usuarios (solo admins)
+  getAllUsers: async (_req: Request, res: Response): Promise<void> => {
+    try {
+      // Obtener todos los usuarios, excluyendo password
+      const users = await User.find().select('-password').sort({ createdAt: -1 });
+
+      res.json({
+        success: true,
+        data: users.map(user => user.toJSON()),
+      });
+    } catch (error) {
+      console.error('Error al obtener usuarios:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error al obtener usuarios',
+      });
+    }
+  },
+
+  // Actualizar estado isActive de un usuario (solo admins)
+  updateUserStatus: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+
+      if (typeof isActive !== 'boolean') {
+        res.status(400).json({
+          success: false,
+          error: 'isActive debe ser un valor booleano',
+        });
+        return;
+      }
+
+      const user = await User.findById(id);
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: 'Usuario no encontrado',
+        });
+        return;
+      }
+
+      // Solo permitir cambiar estado de doctores, no de admins
+      if (user.role === 'admin') {
+        res.status(400).json({
+          success: false,
+          error: 'No se puede cambiar el estado de un administrador',
+        });
+        return;
+      }
+
+      // No permitir desactivar a sí mismo
+      if (req.user && (req.user as any).userId === id && !isActive) {
+        res.status(400).json({
+          success: false,
+          error: 'No puedes desactivar tu propia cuenta',
+        });
+        return;
+      }
+
+      user.isActive = isActive;
+      await user.save();
+
+      res.json({
+        success: true,
+        data: user.toJSON(),
+        message: `Usuario ${isActive ? 'activado' : 'desactivado'} exitosamente`,
+      });
+    } catch (error) {
+      console.error('Error al actualizar estado del usuario:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error al actualizar estado del usuario',
+      });
+    }
+  },
 };
 
