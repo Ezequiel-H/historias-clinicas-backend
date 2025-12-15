@@ -317,5 +317,64 @@ export const authController = {
       });
     }
   },
+
+  // Actualizar foto de firma de un usuario (solo admins)
+  updateUserSignaturePhoto: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { sealSignaturePhoto } = req.body;
+
+      if (!sealSignaturePhoto || typeof sealSignaturePhoto !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: 'La foto de sello y firma es requerida',
+        });
+        return;
+      }
+
+      // Validar que sea una imagen base64 válida
+      if (!sealSignaturePhoto.startsWith('data:image/')) {
+        res.status(400).json({
+          success: false,
+          error: 'La foto debe ser una imagen válida en formato base64',
+        });
+        return;
+      }
+
+      const user = await User.findById(id);
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: 'Usuario no encontrado',
+        });
+        return;
+      }
+
+      // Solo permitir actualizar foto de doctores
+      if (user.role !== 'doctor') {
+        res.status(400).json({
+          success: false,
+          error: 'Solo se puede actualizar la foto de firma de médicos',
+        });
+        return;
+      }
+
+      user.sealSignaturePhoto = sealSignaturePhoto;
+      await user.save();
+
+      res.json({
+        success: true,
+        data: user.toJSON(),
+        message: 'Foto de firma actualizada exitosamente',
+      });
+    } catch (error) {
+      console.error('Error al actualizar foto de firma:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error al actualizar foto de firma',
+      });
+    }
+  },
 };
 
