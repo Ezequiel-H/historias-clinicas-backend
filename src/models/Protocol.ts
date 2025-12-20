@@ -112,6 +112,7 @@ const activitySchema = new Schema<IActivity>(
     timeIntervalMinutes: Number, // Intervalo fijo en minutos entre mediciones
     calculationFormula: String, // Fórmula para campos calculados
     helpText: String,
+    aiDescription: String, // Descripción para la IA sobre qué se hizo en esta actividad durante la visita
     validationRules: [
       {
         name: String,

@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
+import PDFDocument from 'pdfkit';
 import { Protocol } from '../models/Protocol';
 import { Template } from '../models/Template';
+import { OpenAIService } from '../services/openai.service';
 
 export const protocolController = {
   // Obtener todos los protocolos (paginado)
@@ -811,6 +815,142 @@ export const protocolController = {
       res.status(500).json({
         success: false,
         error: 'Error al importar plantilla',
+      });
+    }
+  },
+
+  // Generar historia clínica con IA
+  generateClinicalHistory: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { protocolId, visitId } = req.params;
+      const { visitData } = req.body; // Datos completados de la visita
+
+      if (!visitData || !visitData.activities) {
+        res.status(400).json({
+          success: false,
+          error: 'Los datos de la visita son requeridos',
+        });
+        return;
+      }
+
+      // Obtener protocolo y visita para contexto
+      const protocol = await Protocol.findById(protocolId);
+      if (!protocol) {
+        res.status(404).json({
+          success: false,
+          error: 'Protocolo no encontrado',
+        });
+        return;
+      }
+
+      const visit = (protocol.visits as any).id(visitId);
+      if (!visit) {
+        res.status(404).json({
+          success: false,
+          error: 'Visita no encontrada',
+        });
+        return;
+      }
+
+      // Leer system prompt
+      const promptPath = path.join(__dirname, '../system-prompts/clinical-history.prompt.txt');
+      const systemPrompt = fs.readFileSync(promptPath, 'utf-8');
+
+      // Construir user prompt con los datos de la visita
+      const activitiesDescriptions = visitData.activities
+        .map((activityData: any, index: number) => {
+          const activity = visit.activities.find((a: any) => a._id.toString() === activityData.id);
+          const aiDescription = activity?.aiDescription || activityData.aiDescription || '';
+          
+          let description = `\n${index + 1}. ${activityData.name}`;
+          if (aiDescription) {
+            description += `\n   Descripción: ${aiDescription}`;
+          }
+          
+          if (activityData.value !== undefined && activityData.value !== null && activityData.value !== '') {
+            if (typeof activityData.value === 'object' && !Array.isArray(activityData.value)) {
+              // Campo compuesto
+              const compoundValues = Object.entries(activityData.value)
+                .map(([key, val]) => `${key}: ${val}`)
+                .join(', ');
+              description += `\n   Valores: ${compoundValues}`;
+            } else if (Array.isArray(activityData.value)) {
+              // Múltiples mediciones
+              description += `\n   Mediciones: ${activityData.value.join(', ')}`;
+            } else {
+              description += `\n   Valor: ${activityData.value}`;
+            }
+          }
+          
+          if (activityData.measurements && activityData.measurements.length > 0) {
+            description += `\n   Mediciones:`;
+            activityData.measurements.forEach((measurement: any, idx: number) => {
+              description += `\n     - Medición ${idx + 1}:`;
+              if (measurement.value !== undefined) description += ` Valor: ${measurement.value}`;
+              if (measurement.date) description += ` Fecha: ${measurement.date}`;
+              if (measurement.time) description += ` Hora: ${measurement.time}`;
+            });
+          }
+          
+          if (activityData.date) description += `\n   Fecha: ${activityData.date}`;
+          if (activityData.time) description += `\n   Hora: ${activityData.time}`;
+          
+          return description;
+        })
+        .join('\n');
+
+      const userPrompt = `Protocolo: ${protocol.name} (${protocol.code})
+Visita: ${visitData.visitName || visit.name}
+Fecha de la visita: ${visitData.timestamp ? new Date(visitData.timestamp).toLocaleDateString('es-AR') : 'No especificada'}
+
+Actividades realizadas:
+${activitiesDescriptions}`;
+
+      // Usar OpenAI para generar el texto
+      const aiService = new OpenAIService();
+      
+      // Generar texto libre (sin schema)
+      const clinicalHistoryText = await aiService.sendMessageText(
+        systemPrompt,
+        userPrompt
+      );
+
+      // Generar PDF en memoria
+      const doc = new PDFDocument({
+        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+      });
+
+      // Configurar headers para descarga
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="historia-clinica-${protocol.code}-${visit.name.replace(/\s+/g, '-')}.pdf"`
+      );
+
+      // Escribir contenido al PDF
+      doc.pipe(res);
+      
+      // Encabezado
+      doc.fontSize(16).font('Helvetica-Bold').text('HISTORIA CLÍNICA', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).font('Helvetica').text(`Protocolo: ${protocol.name} (${protocol.code})`, { align: 'left' });
+      doc.text(`Visita: ${visitData.visitName || visit.name}`, { align: 'left' });
+      doc.text(`Fecha: ${visitData.timestamp ? new Date(visitData.timestamp).toLocaleDateString('es-AR') : 'No especificada'}`, { align: 'left' });
+      doc.moveDown(2);
+
+      // Contenido de la historia clínica
+      doc.fontSize(11).text(clinicalHistoryText, {
+        align: 'justify',
+        lineGap: 5,
+      });
+
+      // Finalizar PDF
+      doc.end();
+    } catch (error) {
+      console.error('Error al generar historia clínica:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error al generar historia clínica',
       });
     }
   },

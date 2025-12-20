@@ -225,6 +225,13 @@ router.post(
   protocolController.importTemplate
 );
 
+// Generar historia clínica con IA
+router.post(
+  '/:protocolId/visits/:visitId/generate-clinical-history',
+  validate([...protocolIdValidation, ...visitIdValidation]),
+  protocolController.generateClinicalHistory
+);
+
 // ==========================================
 // RUTAS DE REGLAS CLÍNICAS
 // ==========================================

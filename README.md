@@ -44,6 +44,10 @@ JWT_EXPIRES_IN=7d
 
 # CORS Configuration
 CORS_ORIGIN=http://localhost:5173
+
+# OpenAI Configuration
+OPENAI_API_KEY=your-openai-api-key-here
+OPENAI_MODEL=gpt-4
 ```
 
 3. **Iniciar servidor de desarrollo:**
@@ -63,6 +67,9 @@ src/
 ├── middleware/       # Middlewares (auth, validación, errores)
 ├── models/          # Modelos de Mongoose
 ├── routes/          # Definición de rutas
+├── services/        # Servicios (IA, etc)
+│   └── interfaces/  # Interfaces de servicios
+├── system-prompts/  # System prompts para IA
 ├── types/           # Tipos de TypeScript
 ├── utils/           # Utilidades (JWT, etc)
 └── index.ts         # Punto de entrada
@@ -301,6 +308,8 @@ Los archivos compilados estarán en el directorio `dist/`
 | `JWT_SECRET` | Secreto para firmar JWT | (requerido) |
 | `JWT_EXPIRES_IN` | Tiempo de expiración del JWT | `7d` |
 | `CORS_ORIGIN` | Origen permitido para CORS | `http://localhost:5173` |
+| `OPENAI_API_KEY` | API Key de OpenAI | (requerido para servicios de IA) |
+| `OPENAI_MODEL` | Modelo de OpenAI a utilizar | `gpt-4` |
 
 ## 🔒 Roles de Usuario
 
