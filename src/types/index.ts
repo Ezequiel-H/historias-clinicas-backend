@@ -27,7 +27,8 @@ export type FieldType =
   | 'datetime'             // Fecha y/o hora (configurable)
   | 'file'
   | 'conditional'
-  | 'calculated';
+  | 'calculated'
+  | 'medication_tracking'; // Seguimiento de medicación
 
 // Configuración de campo compuesto
 export interface CompoundFieldConfig {
@@ -80,6 +81,16 @@ export interface IActivity {
   timeIntervalMinutes?: number; // Intervalo fijo en minutos entre mediciones (solo si allowMultiple y requireTime). Si está configurado, solo se pregunta la hora de la primera medición
   calculationFormula?: string; // Fórmula para campos calculados (ej: "peso / altura")
   helpText?: string;
+  medicationTrackingConfig?: {
+    medicationName?: string;
+    dosageUnit?: 'comprimidos' | 'cápsulas' | 'tabletas' | 'ml' | 'gotas' | 'sobres' | 'parches' | 'ampollas' | 'unidades';
+    quantityPerDose?: number;
+    frequencyType?: 'once_daily' | 'twice_daily' | 'three_daily' | 'every_x_hours' | 'once_weekly';
+    customHoursInterval?: number;
+    expectedDailyDose?: number;
+    shouldConsumeOnDeliveryDay?: boolean;
+    shouldTakeOnVisitDay?: boolean;
+  };
   validationRules?: IActivityRule[];
 }
 
@@ -126,6 +137,15 @@ export interface IProtocol extends Document {
   status: 'active' | 'inactive' | 'draft';
   visits: IVisit[];
   clinicalRules: IClinicalRule[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Plantilla de Actividades
+export interface IActivityTemplate extends Document {
+  name: string;
+  description?: string;
+  activities: IActivity[];
   createdAt: Date;
   updatedAt: Date;
 }

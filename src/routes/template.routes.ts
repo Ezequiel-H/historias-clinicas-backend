@@ -38,6 +38,7 @@ const activityValidation = [
       'file',
       'conditional',
       'calculated',
+      'medication_tracking',
     ])
     .withMessage('Tipo de campo inválido'),
   body('required').optional().isBoolean(),
