@@ -296,19 +296,32 @@ export const protocolController = {
         const visit = visitsArray.id(visitId);
         
         if (visit) {
-          // Copiar actividades de la plantilla a la visita (usando la versión más reciente)
-          const importedActivities = basicTemplate.activities.map((activity: any) => {
-            const activityObj = activity.toObject ? activity.toObject() : activity;
-            // Eliminar el _id para que MongoDB genere uno nuevo
-            delete activityObj._id;
-            delete activityObj.id;
-            // Ajustar el orden para que se agreguen al principio
-            activityObj.order = (visit.activities?.length || 0) + activityObj.order;
-            return activityObj;
-          });
+          // Obtener nombres de actividades existentes para evitar duplicados
+          const existingActivityNames = new Set(
+            (visit.activities || []).map((a: any) => a.name?.toLowerCase() || '')
+          );
 
-          visit.activities.push(...importedActivities);
-          await updatedProtocol.save();
+          // Copiar actividades de la plantilla a la visita (usando la versión más reciente)
+          // Solo agregar actividades que no existan ya por nombre
+          const importedActivities = basicTemplate.activities
+            .filter((activity: any) => {
+              const activityName = activity.name?.toLowerCase() || '';
+              return !existingActivityNames.has(activityName);
+            })
+            .map((activity: any) => {
+              const activityObj = activity.toObject ? activity.toObject() : activity;
+              // Eliminar el _id para que MongoDB genere uno nuevo
+              delete activityObj._id;
+              delete activityObj.id;
+              // Ajustar el orden para que se agreguen al principio
+              activityObj.order = (visit.activities?.length || 0) + activityObj.order;
+              return activityObj;
+            });
+
+          if (importedActivities.length > 0) {
+            visit.activities.push(...importedActivities);
+            await updatedProtocol.save();
+          }
         }
       }
 
@@ -786,20 +799,33 @@ export const protocolController = {
         return;
       }
 
+      // Obtener nombres de actividades existentes para evitar duplicados
+      const existingActivityNames = new Set(
+        (visit.activities || []).map((a: any) => a.name?.toLowerCase() || '')
+      );
+
       // Copiar actividades de la plantilla a la visita
       // Generar nuevos IDs para las actividades importadas
-      const importedActivities = template.activities.map((activity: any) => {
-        const activityObj = activity.toObject ? activity.toObject() : activity;
-        // Eliminar el _id para que MongoDB genere uno nuevo
-        delete activityObj._id;
-        delete activityObj.id;
-        // Ajustar el orden para que se agreguen al final
-        activityObj.order = (visit.activities?.length || 0) + (activityObj.order || 0) + 1;
-        return activityObj;
-      });
+      // Solo agregar actividades que no existan ya por nombre
+      const importedActivities = template.activities
+        .filter((activity: any) => {
+          const activityName = activity.name?.toLowerCase() || '';
+          return !existingActivityNames.has(activityName);
+        })
+        .map((activity: any) => {
+          const activityObj = activity.toObject ? activity.toObject() : activity;
+          // Eliminar el _id para que MongoDB genere uno nuevo
+          delete activityObj._id;
+          delete activityObj.id;
+          // Ajustar el orden para que se agreguen al final
+          activityObj.order = (visit.activities?.length || 0) + (activityObj.order || 0) + 1;
+          return activityObj;
+        });
 
-      visit.activities.push(...importedActivities);
-      await protocol.save();
+      if (importedActivities.length > 0) {
+        visit.activities.push(...importedActivities);
+        await protocol.save();
+      }
 
       res.json({
         success: true,
