@@ -114,10 +114,7 @@ const templateActivitySchema = new Schema<Omit<IActivity, 'id' | 'visitId'>>(
     helpText: String,
     medicationTrackingConfig: {
       medicationName: String,
-      dosageUnit: {
-        type: String,
-        enum: ['comprimidos', 'cápsulas', 'tabletas', 'ml', 'gotas', 'sobres', 'parches', 'ampollas', 'unidades'],
-      },
+      dosageUnit: String, // Unidad de dosis (ej: 'comprimidos', 'ml', 'gotas', etc.)
       quantityPerDose: Number,
       frequencyType: {
         type: String,
