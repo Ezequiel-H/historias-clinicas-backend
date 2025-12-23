@@ -64,6 +64,26 @@ const signupValidation = [
     .withMessage('La foto debe ser una cadena base64 válida'),
 ];
 
+const updateUserStatusValidation = [
+  body('isActive')
+    .isBoolean()
+    .withMessage('isActive debe ser un valor booleano'),
+];
+
+const updateSignaturePhotoValidation = [
+  body('sealSignaturePhoto')
+    .notEmpty()
+    .withMessage('La foto de sello y firma es requerida')
+    .isString()
+    .withMessage('La foto debe ser una cadena base64 válida')
+    .custom((value) => {
+      if (!value.startsWith('data:image/')) {
+        throw new Error('La foto debe ser una imagen válida en formato base64');
+      }
+      return true;
+    }),
+];
+
 // Rutas públicas
 router.post('/login', validate(loginValidation), authController.login);
 router.post('/logout', authController.logout);
@@ -79,6 +99,29 @@ router.post(
   checkRole('admin'),
   validate(registerValidation),
   authController.register
+);
+
+router.get(
+  '/users',
+  authMiddleware,
+  checkRole('admin'),
+  authController.getAllUsers
+);
+
+router.patch(
+  '/users/:id',
+  authMiddleware,
+  checkRole('admin'),
+  validate(updateUserStatusValidation),
+  authController.updateUserStatus
+);
+
+router.patch(
+  '/users/:id/signature-photo',
+  authMiddleware,
+  checkRole('admin'),
+  validate(updateSignaturePhotoValidation),
+  authController.updateUserSignaturePhoto
 );
 
 export default router;
