@@ -81,7 +81,6 @@ export interface IActivity {
   timeIntervalMinutes?: number; // Intervalo fijo en minutos entre mediciones (solo si allowMultiple y requireTime). Si está configurado, solo se pregunta la hora de la primera medición
   calculationFormula?: string; // Fórmula para campos calculados (ej: "peso / altura")
   helpText?: string;
-  aiDescription?: string; // Descripción para la IA sobre qué se hizo en esta actividad durante la visita
   medicationTrackingConfig?: {
     medicationName?: string;
     dosageUnit?: 'comprimidos' | 'cápsulas' | 'tabletas' | 'ml' | 'gotas' | 'sobres' | 'parches' | 'ampollas' | 'unidades';
