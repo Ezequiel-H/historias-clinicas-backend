@@ -30,7 +30,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
     "morgan": "^1.10.0",
-    "pdfkit": "^0.17.2"
+    "openai": "^4.0.0",
+    "pdfkit": "^0.17.2",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
