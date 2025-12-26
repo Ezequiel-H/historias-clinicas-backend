@@ -886,11 +886,11 @@ export const protocolController = {
       const activitiesDescriptions = visitData.activities
         .map((activityData: any, index: number) => {
           const activity = visit.activities.find((a: any) => a._id.toString() === activityData.id);
-          const aiDescription = activity?.aiDescription || activityData.aiDescription || '';
+          const descriptionText = activity?.description || activityData.description || '';
           
           let description = `\n${index + 1}. ${activityData.name}`;
-          if (aiDescription) {
-            description += `\n   Descripción: ${aiDescription}`;
+          if (descriptionText) {
+            description += `\n   Descripción: ${descriptionText}`;
           }
           
           if (activityData.value !== undefined && activityData.value !== null && activityData.value !== '') {
