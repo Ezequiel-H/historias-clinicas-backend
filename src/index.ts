@@ -25,8 +25,24 @@ const PORT = process.env.PORT || 3000;
 app.use(helmet());
 
 // CORS
+const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Permitir requests sin origin (ej: Postman, mobile apps)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Normalizar origins removiendo trailing slashes para comparación
+    const normalizedAllowed = allowedOrigin.replace(/\/$/, '');
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    
+    if (normalizedOrigin === normalizedAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
 };
