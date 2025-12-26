@@ -17,9 +17,11 @@ REQUISITOS DEL RELATO:
 
 IMPORTANTE:
 - El relato debe ser un texto continuo, NO una lista de puntos
+- Las actividades deben tomarse como acciones que realizó el medico con el paciente y no deben ser relatadas como una secuencia de actividades.
 - Debes integrar los valores numéricos de manera natural en el texto
 - Si hay múltiples mediciones, describe la evolución o los valores obtenidos
 - Incluye las fechas y horarios cuando estén disponibles
 - Si hay observaciones o notas adicionales del médico, inclúyelas en el relato
+- En ningún lado menciones que es un proceso automático hecho con inteligencia artificial.
 
 Responde ÚNICAMENTE con el texto de la historia clínica, sin encabezados, sin formato especial, solo texto plano que pueda leerse como un relato médico profesional.
