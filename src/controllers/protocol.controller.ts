@@ -1066,8 +1066,8 @@ export const protocolController = {
     }
   },
 
-  // Generar historia clínica con IA
-  generateClinicalHistory: async (req: Request, res: Response): Promise<void> => {
+  // Previsualizar texto de historia clínica con IA (sin generar PDF)
+  previewClinicalHistory: async (req: Request, res: Response): Promise<void> => {
     try {
       const { protocolId, visitId } = req.params;
       const { visitData } = req.body;
@@ -1096,14 +1096,57 @@ export const protocolController = {
       // Leer system prompt
       const systemPrompt = readSystemPrompt();
 
-      // Extraer número de hoja
-      const numeroHoja = extractNumeroHoja(visitData.activities);
-
       // Construir prompt de actividades
       const activitiesDescriptions = buildActivitiesDescriptions(visitData, visit);
 
       // Construir user prompt completo
       const userPrompt = buildUserPrompt(protocol, visit, visitData, activitiesDescriptions);
+
+      // Generar texto de historia clínica
+      const clinicalHistoryText = await generateClinicalHistoryText(systemPrompt, userPrompt);
+
+      // Retornar texto en formato JSON
+      res.json({
+        success: true,
+        data: {
+          clinicalHistoryText,
+        },
+      });
+    } catch (error) {
+      console.error('Error al previsualizar historia clínica:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error al previsualizar historia clínica',
+      });
+    }
+  },
+
+  // Generar historia clínica con IA
+  generateClinicalHistory: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { protocolId, visitId } = req.params;
+      const { visitData, clinicalHistoryText: editedText } = req.body;
+
+      // Validar datos de entrada
+      const validation = validateClinicalHistoryInput(visitData);
+      if (!validation.isValid) {
+        res.status(400).json({
+          success: false,
+          error: validation.error,
+        });
+        return;
+      }
+
+      // Obtener protocolo y visita
+      const protocolAndVisit = await getProtocolAndVisit(protocolId, visitId);
+      if (!protocolAndVisit) {
+        res.status(404).json({
+          success: false,
+          error: 'Protocolo o visita no encontrados',
+        });
+        return;
+      }
+      const { protocol, visit } = protocolAndVisit;
 
       // Obtener usuario autenticado
       if (!req.user) {
@@ -1123,8 +1166,26 @@ export const protocolController = {
         return;
       }
 
-      // Generar texto de historia clínica
-      const clinicalHistoryText = await generateClinicalHistoryText(systemPrompt, userPrompt);
+      // Si se proporciona texto editado, usarlo; si no, generar nuevo texto
+      let clinicalHistoryText: string;
+      if (editedText && typeof editedText === 'string' && editedText.trim()) {
+        clinicalHistoryText = editedText;
+      } else {
+        // Leer system prompt
+        const systemPrompt = readSystemPrompt();
+
+        // Construir prompt de actividades
+        const activitiesDescriptions = buildActivitiesDescriptions(visitData, visit);
+
+        // Construir user prompt completo
+        const userPrompt = buildUserPrompt(protocol, visit, visitData, activitiesDescriptions);
+
+        // Generar texto de historia clínica
+        clinicalHistoryText = await generateClinicalHistoryText(systemPrompt, userPrompt);
+      }
+
+      // Extraer número de hoja
+      const numeroHoja = extractNumeroHoja(visitData.activities);
 
       // Crear documento PDF
       const doc = new PDFDocument({
