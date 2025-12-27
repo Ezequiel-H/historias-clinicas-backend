@@ -25,21 +25,30 @@ const PORT = process.env.PORT || 3000;
 app.use(helmet());
 
 // CORS
-const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
+// Permitir múltiples origins separados por coma, o usar el default
+const allowedOriginsString = process.env.CORS_ORIGIN || 'http://localhost:5173';
+const allowedOrigins = allowedOriginsString.split(',').map(origin => origin.trim());
+
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Permitir requests sin origin (ej: Postman, mobile apps)
+    // Permitir requests sin origin (ej: Postman, mobile apps, server-to-server)
     if (!origin) {
       return callback(null, true);
     }
     
     // Normalizar origins removiendo trailing slashes para comparación
-    const normalizedAllowed = allowedOrigin.replace(/\/$/, '');
     const normalizedOrigin = origin.replace(/\/$/, '');
     
-    if (normalizedOrigin === normalizedAllowed) {
+    // Verificar si el origin está en la lista de permitidos
+    const isAllowed = allowedOrigins.some(allowed => {
+      const normalizedAllowed = allowed.replace(/\/$/, '');
+      return normalizedOrigin === normalizedAllowed;
+    });
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
+      console.warn(`CORS: Origin "${origin}" not allowed. Allowed origins: ${allowedOrigins.join(', ')}`);
       callback(new Error('Not allowed by CORS'));
     }
   },

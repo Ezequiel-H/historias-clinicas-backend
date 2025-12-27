@@ -94,6 +94,10 @@ const activitySchema = new Schema<IActivity>(
       type: Boolean,
       default: false, // Por defecto, no incluir hora
     },
+    isVisitDate: {
+      type: Boolean,
+      default: false, // Si true, este campo representa la fecha de la visita
+    },
     requireDate: {
       type: Boolean,
       default: false,

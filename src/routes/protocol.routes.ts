@@ -77,6 +77,7 @@ const activityValidation = [
   body('repeatCount').optional().isInt({ min: 1, max: 10 }),
   body('datetimeIncludeDate').optional().isBoolean(), // Configuración para tipo datetime
   body('datetimeIncludeTime').optional().isBoolean(), // Configuración para tipo datetime
+  body('isVisitDate').optional().isBoolean(), // Si true, este campo representa la fecha de la visita
   body('requireDate').optional().isBoolean(),
   body('requireTime').optional().isBoolean(),
   body('requireDatePerMeasurement').optional().isBoolean(),
