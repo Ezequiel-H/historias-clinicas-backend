@@ -170,6 +170,30 @@ function writePDFContent(doc: any, clinicalHistoryText: string): void {
   });
 }
 
+// Agregar número de página al header (top right) de la página actual
+function addPageNumberToCurrentPage(doc: any, pageNumber: number): void {
+  const pageWidth = doc.page.width;
+  const margin = 50;
+  const headerY = margin - 25; // Top of the page, higher up
+  
+  // Save current position
+  const savedX = doc.x;
+  const savedY = doc.y;
+  
+  // Add page number at top right corner
+  doc.fontSize(10)
+    .font('Helvetica')
+    .text(
+      String(pageNumber),
+      pageWidth - margin - 20,
+      headerY
+    );
+  
+  // Restore position
+  doc.x = savedX;
+  doc.y = savedY;
+}
+
 // Convertir base64 a buffer de imagen
 function convertBase64ToBuffer(base64String: string): Buffer {
   let imageData = base64String;
@@ -1186,24 +1210,53 @@ export const protocolController = {
 
       // Extraer número de hoja
       const numeroHoja = extractNumeroHoja(visitData.activities);
+      
+      // Determinar el número inicial de página
+      const startingPageNumber = numeroHoja ? parseInt(numeroHoja, 10) : 1;
+      let currentPageNumber = startingPageNumber;
 
-      // Crear documento PDF
+      // Crear documento PDF - generar a buffer primero
+      const chunks: Buffer[] = [];
       const doc = new PDFDocument({
         margins: { top: 50, bottom: 50, left: 50, right: 50 },
       });
 
-      // Configurar headers de respuesta
-      setPDFResponseHeaders(res, protocol.code, visit.name);
+      // Add page number to the CURRENT page when a new page is created
+      // When pageAdded fires, we're already on the NEW page, so add number to it
+      doc.on('pageAdded', () => {
+        // Add page number to the current (new) page at the top right
+        addPageNumberToCurrentPage(doc, currentPageNumber);
+        currentPageNumber++;
+      });
+
+      // Collect PDF data
+      doc.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+
+      // Add page number to first page before writing content
+      addPageNumberToCurrentPage(doc, startingPageNumber);
+      currentPageNumber++;
 
       // Escribir contenido al PDF
-      doc.pipe(res);
       writePDFHeader(doc, protocol, visit, visitData, numeroHoja);
       writePDFContent(doc, clinicalHistoryText);
       addSignatureToPDF(doc, user.sealSignaturePhoto || '');
       addStrikethroughLine(doc);
 
-      // Finalizar PDF
+      // Finalizar PDF y esperar a que termine
       doc.end();
+      
+      await new Promise<void>((resolve) => {
+        doc.on('end', () => {
+          resolve();
+        });
+      });
+
+      // Enviar PDF con headers
+      setPDFResponseHeaders(res, protocol.code, visit.name);
+      const pdfBuffer = Buffer.concat(chunks);
+      res.send(pdfBuffer);
     } catch (error) {
       console.error('Error al generar historia clínica:', error);
       res.status(500).json({
