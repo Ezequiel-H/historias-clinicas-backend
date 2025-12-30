@@ -93,6 +93,8 @@ export interface IActivity {
     shouldTakeOnVisitDay?: boolean;
   };
   validationRules?: IActivityRule[];
+  // Si true, el resultado de esta actividad no se enviará a la IA
+  excludeFromAI?: boolean;
 }
 
 // Visita
