@@ -170,6 +170,30 @@ function writePDFContent(doc: any, clinicalHistoryText: string): void {
   });
 }
 
+// Agregar número de página al header (top right) de la página actual
+function addPageNumberToCurrentPage(doc: any, pageNumber: number): void {
+  const pageWidth = doc.page.width;
+  const margin = 50;
+  const headerY = margin - 25; // Top of the page, higher up
+  
+  // Save current position
+  const savedX = doc.x;
+  const savedY = doc.y;
+  
+  // Add page number at top right corner
+  doc.fontSize(10)
+    .font('Helvetica')
+    .text(
+      String(pageNumber),
+      pageWidth - margin - 20,
+      headerY
+    );
+  
+  // Restore position
+  doc.x = savedX;
+  doc.y = savedY;
+}
+
 // Convertir base64 a buffer de imagen
 function convertBase64ToBuffer(base64String: string): Buffer {
   let imageData = base64String;
@@ -1066,8 +1090,8 @@ export const protocolController = {
     }
   },
 
-  // Generar historia clínica con IA
-  generateClinicalHistory: async (req: Request, res: Response): Promise<void> => {
+  // Previsualizar texto de historia clínica con IA (sin generar PDF)
+  previewClinicalHistory: async (req: Request, res: Response): Promise<void> => {
     try {
       const { protocolId, visitId } = req.params;
       const { visitData } = req.body;
@@ -1096,14 +1120,57 @@ export const protocolController = {
       // Leer system prompt
       const systemPrompt = readSystemPrompt();
 
-      // Extraer número de hoja
-      const numeroHoja = extractNumeroHoja(visitData.activities);
-
       // Construir prompt de actividades
       const activitiesDescriptions = buildActivitiesDescriptions(visitData, visit);
 
       // Construir user prompt completo
       const userPrompt = buildUserPrompt(protocol, visit, visitData, activitiesDescriptions);
+
+      // Generar texto de historia clínica
+      const clinicalHistoryText = await generateClinicalHistoryText(systemPrompt, userPrompt);
+
+      // Retornar texto en formato JSON
+      res.json({
+        success: true,
+        data: {
+          clinicalHistoryText,
+        },
+      });
+    } catch (error) {
+      console.error('Error al previsualizar historia clínica:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error al previsualizar historia clínica',
+      });
+    }
+  },
+
+  // Generar historia clínica con IA
+  generateClinicalHistory: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { protocolId, visitId } = req.params;
+      const { visitData, clinicalHistoryText: editedText } = req.body;
+
+      // Validar datos de entrada
+      const validation = validateClinicalHistoryInput(visitData);
+      if (!validation.isValid) {
+        res.status(400).json({
+          success: false,
+          error: validation.error,
+        });
+        return;
+      }
+
+      // Obtener protocolo y visita
+      const protocolAndVisit = await getProtocolAndVisit(protocolId, visitId);
+      if (!protocolAndVisit) {
+        res.status(404).json({
+          success: false,
+          error: 'Protocolo o visita no encontrados',
+        });
+        return;
+      }
+      const { protocol, visit } = protocolAndVisit;
 
       // Obtener usuario autenticado
       if (!req.user) {
@@ -1123,26 +1190,73 @@ export const protocolController = {
         return;
       }
 
-      // Generar texto de historia clínica
-      const clinicalHistoryText = await generateClinicalHistoryText(systemPrompt, userPrompt);
+      // Si se proporciona texto editado, usarlo; si no, generar nuevo texto
+      let clinicalHistoryText: string;
+      if (editedText && typeof editedText === 'string' && editedText.trim()) {
+        clinicalHistoryText = editedText;
+      } else {
+        // Leer system prompt
+        const systemPrompt = readSystemPrompt();
 
-      // Crear documento PDF
+        // Construir prompt de actividades
+        const activitiesDescriptions = buildActivitiesDescriptions(visitData, visit);
+
+        // Construir user prompt completo
+        const userPrompt = buildUserPrompt(protocol, visit, visitData, activitiesDescriptions);
+
+        // Generar texto de historia clínica
+        clinicalHistoryText = await generateClinicalHistoryText(systemPrompt, userPrompt);
+      }
+
+      // Extraer número de hoja
+      const numeroHoja = extractNumeroHoja(visitData.activities);
+      
+      // Determinar el número inicial de página
+      const startingPageNumber = numeroHoja ? parseInt(numeroHoja, 10) : 1;
+      let currentPageNumber = startingPageNumber;
+
+      // Crear documento PDF - generar a buffer primero
+      const chunks: Buffer[] = [];
       const doc = new PDFDocument({
         margins: { top: 50, bottom: 50, left: 50, right: 50 },
       });
 
-      // Configurar headers de respuesta
-      setPDFResponseHeaders(res, protocol.code, visit.name);
+      // Add page number to the CURRENT page when a new page is created
+      // When pageAdded fires, we're already on the NEW page, so add number to it
+      doc.on('pageAdded', () => {
+        // Add page number to the current (new) page at the top right
+        addPageNumberToCurrentPage(doc, currentPageNumber);
+        currentPageNumber++;
+      });
+
+      // Collect PDF data
+      doc.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+
+      // Add page number to first page before writing content
+      addPageNumberToCurrentPage(doc, startingPageNumber);
+      currentPageNumber++;
 
       // Escribir contenido al PDF
-      doc.pipe(res);
       writePDFHeader(doc, protocol, visit, visitData, numeroHoja);
       writePDFContent(doc, clinicalHistoryText);
       addSignatureToPDF(doc, user.sealSignaturePhoto || '');
       addStrikethroughLine(doc);
 
-      // Finalizar PDF
+      // Finalizar PDF y esperar a que termine
       doc.end();
+      
+      await new Promise<void>((resolve) => {
+        doc.on('end', () => {
+          resolve();
+        });
+      });
+
+      // Enviar PDF con headers
+      setPDFResponseHeaders(res, protocol.code, visit.name);
+      const pdfBuffer = Buffer.concat(chunks);
+      res.send(pdfBuffer);
     } catch (error) {
       console.error('Error al generar historia clínica:', error);
       res.status(500).json({
