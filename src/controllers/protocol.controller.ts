@@ -54,6 +54,85 @@ function extractNumeroHoja(activities: any[]): string | null {
   return null;
 }
 
+// Extraer valor de "Frente de hoja" de las actividades
+function extractFrenteDeHoja(activities: any[]): boolean {
+  const frenteDeHojaActivity = activities.find((a: any) => 
+    a.name === 'Frente de hoja' || 
+    a.name?.toLowerCase() === 'frente de hoja' ||
+    a.name?.toLowerCase() === 'frente_de_hoja'
+  );
+  
+  if (frenteDeHojaActivity && frenteDeHojaActivity.value !== undefined && 
+      frenteDeHojaActivity.value !== null && frenteDeHojaActivity.value !== '') {
+    // Convertir a boolean: puede ser true, "true", 1, "1", etc.
+    const value = frenteDeHojaActivity.value;
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true' || value === '1';
+    }
+    if (typeof value === 'number') {
+      return value === 1;
+    }
+  }
+  
+  // Por defecto, asumir que la primera página es frente si no se especifica
+  return true;
+}
+
+// Extraer "Nombre y Apellido" de las actividades
+function extractNombreApellido(activities: any[]): string | null {
+  const nombreApellidoActivity = activities.find((a: any) => 
+    a.name === 'Nombre y Apellido' || 
+    a.name?.toLowerCase() === 'nombre y apellido' ||
+    a.name?.toLowerCase() === 'nombre_apellido' ||
+    a.name?.toLowerCase() === 'nombre_apellido'
+  );
+  
+  if (nombreApellidoActivity && nombreApellidoActivity.value !== undefined && 
+      nombreApellidoActivity.value !== null && nombreApellidoActivity.value !== '') {
+    return String(nombreApellidoActivity.value);
+  }
+  
+  return null;
+}
+
+// Extraer "DNI" de las actividades
+function extractDNI(activities: any[]): string | null {
+  const dniActivity = activities.find((a: any) => 
+    a.name === 'DNI' || 
+    a.name?.toLowerCase() === 'dni'
+  );
+  
+  if (dniActivity && dniActivity.value !== undefined && 
+      dniActivity.value !== null && dniActivity.value !== '') {
+    return String(dniActivity.value);
+  }
+  
+  return null;
+}
+
+// Leer imagen del header desde archivo estático
+function getHeaderImage(): Buffer | null {
+  try {
+    // Buscar la imagen del logo
+    const imageName = 'Logo Cedic chico.png';
+    const assetsPath = path.join(__dirname, '../assets');
+    const imagePath = path.join(assetsPath, imageName);
+    
+    if (fs.existsSync(imagePath)) {
+      return fs.readFileSync(imagePath);
+    }
+    
+    console.warn('No se encontró imagen del header en assets');
+    return null;
+  } catch (error) {
+    console.error('Error al leer imagen del header:', error);
+    return null;
+  }
+}
+
 // Construir descripción de una actividad individual
 function buildActivityDescription(activityData: any, activity: any, index: number): string {
   const descriptionText = activity?.description || activityData.description || '';
@@ -146,22 +225,6 @@ function setPDFResponseHeaders(res: Response, protocolCode: string, visitName: s
   );
 }
 
-// Escribir encabezado del PDF
-function writePDFHeader(doc: any, protocol: any, visit: any, visitData: any, numeroHoja: string | null): void {
-  doc.fontSize(16).font('Helvetica-Bold').text('HISTORIA CLÍNICA', { align: 'center' });
-  doc.moveDown();
-  doc.fontSize(12).font('Helvetica')
-    .text(`Protocolo: ${protocol.name} (${protocol.code})`, { align: 'left' })
-    .text(`Visita: ${visitData.visitName || visit.name}`, { align: 'left' })
-    .text(`Fecha: ${visitData.timestamp ? new Date(visitData.timestamp).toLocaleDateString('es-AR') : 'No especificada'}`, { align: 'left' });
-  
-  if (numeroHoja) {
-    doc.text(`Número de Hoja: ${numeroHoja}`, { align: 'left' });
-  }
-  
-  doc.moveDown(2);
-}
-
 // Escribir contenido de la historia clínica en el PDF
 function writePDFContent(doc: any, clinicalHistoryText: string): void {
   doc.fontSize(11).text(clinicalHistoryText, {
@@ -170,28 +233,101 @@ function writePDFContent(doc: any, clinicalHistoryText: string): void {
   });
 }
 
-// Agregar número de página al header (top right) de la página actual
-function addPageNumberToCurrentPage(doc: any, pageNumber: number): void {
+// Agregar número de página y datos del paciente al header (top right) de la página actual
+function addPageNumberToCurrentPage(doc: any, pageNumber: number, nombreApellido: string | null, dni: string | null): void {
   const pageWidth = doc.page.width;
   const margin = 50;
   const headerY = margin - 25; // Top of the page, higher up
+  const fontSize = 10;
+  const spacing = 10; // Espacio entre los elementos
   
   // Save current position
   const savedX = doc.x;
   const savedY = doc.y;
   
-  // Add page number at top right corner
-  doc.fontSize(10)
-    .font('Helvetica')
-    .text(
-      String(pageNumber),
-      pageWidth - margin - 20,
+  doc.fontSize(fontSize).font('Helvetica');
+  
+  // Calcular posición del número de página (derecha)
+  const pageNumberX = pageWidth - margin - 20;
+  const pageNumberWidth = doc.widthOfString(String(pageNumber));
+  let currentX = pageNumberX - pageNumberWidth;
+  
+  // Agregar número de página (derecha)
+  doc.text(
+    String(pageNumber),
+    currentX,
+    headerY
+  );
+  
+  // Agregar DNI si existe (a la izquierda del número de página)
+  if (dni) {
+    currentX -= spacing;
+    const dniWidth = doc.widthOfString(dni);
+    currentX -= dniWidth;
+    doc.text(
+      dni,
+      currentX,
       headerY
     );
+  }
+  
+  // Agregar Nombre y Apellido si existe (a la izquierda del DNI)
+  if (nombreApellido) {
+    currentX -= spacing;
+    const nombreWidth = doc.widthOfString(nombreApellido);
+    currentX -= nombreWidth;
+    doc.text(
+      nombreApellido,
+      currentX,
+      headerY
+    );
+  }
   
   // Restore position
   doc.x = savedX;
   doc.y = savedY;
+}
+
+// Agregar imagen centrada en el header (solo en páginas frente)
+// Retorna la posición Y donde debería empezar el contenido (debajo de la imagen)
+function addHeaderImage(doc: any, imageBuffer: Buffer | null): number | null {
+  if (!imageBuffer) return null;
+  
+  try {
+    const pageWidth = doc.page.width;
+    const margin = 50;
+    const headerY = margin - 25; // Top of the page, same as page number
+    
+    // Save current position
+    const savedX = doc.x;
+    const savedY = doc.y;
+    
+    // Tamaño de la imagen (ajustar según necesidad)
+    const imageWidth = 200;
+    const imageHeight = 60;
+    
+    // Centrar la imagen horizontalmente
+    const x = (pageWidth - imageWidth) / 2;
+    const y = headerY;
+    
+    doc.image(imageBuffer, x, y, {
+      width: imageWidth,
+      height: imageHeight,
+    });
+    
+    // Calcular posición Y donde debería empezar el contenido (debajo de la imagen + espacio)
+    const contentStartY = y + imageHeight + 15; // 15px de espacio después de la imagen
+    
+    // Restore position
+    doc.x = savedX;
+    doc.y = savedY;
+    
+    // Retornar la posición Y para que el contenido empiece ahí
+    return contentStartY;
+  } catch (error) {
+    console.error('Error al agregar imagen del header:', error);
+    return null;
+  }
 }
 
 // Convertir base64 a buffer de imagen
@@ -1211,9 +1347,20 @@ export const protocolController = {
       // Extraer número de hoja
       const numeroHoja = extractNumeroHoja(visitData.activities);
       
+      // Extraer si la primera página es frente de hoja
+      const primeraPaginaEsFrente = extractFrenteDeHoja(visitData.activities);
+      
+      // Extraer datos del paciente
+      const nombreApellido = extractNombreApellido(visitData.activities);
+      const dni = extractDNI(visitData.activities);
+      
+      // Leer imagen del header desde archivo estático
+      const headerImage = getHeaderImage();
+      
       // Determinar el número inicial de página
       const startingPageNumber = numeroHoja ? parseInt(numeroHoja, 10) : 1;
       let currentPageNumber = startingPageNumber;
+      let currentPageIndex = 0; // Índice de página (0-based)
 
       // Crear documento PDF - generar a buffer primero
       const chunks: Buffer[] = [];
@@ -1221,12 +1368,35 @@ export const protocolController = {
         margins: { top: 50, bottom: 50, left: 50, right: 50 },
       });
 
-      // Add page number to the CURRENT page when a new page is created
-      // When pageAdded fires, we're already on the NEW page, so add number to it
+      // Función para determinar si una página es frente (front) o dorso (back)
+      const isFrontPage = (pageIndex: number): boolean => {
+        // Si la primera página es frente, las páginas pares (0, 2, 4...) son frente
+        // Si la primera página es dorso, las páginas impares (1, 3, 5...) son frente
+        if (primeraPaginaEsFrente) {
+          return pageIndex % 2 === 0; // 0, 2, 4, 6... son frente
+        } else {
+          return pageIndex % 2 === 1; // 1, 3, 5, 7... son frente
+        }
+      };
+
+      // Add page number and header elements to the CURRENT page when a new page is created
+      // When pageAdded fires, we're already on the NEW page, so add elements to it
       doc.on('pageAdded', () => {
-        // Add page number to the current (new) page at the top right
-        addPageNumberToCurrentPage(doc, currentPageNumber);
-        currentPageNumber++;
+        currentPageIndex++;
+        // Solo agregar header si es una página frente (front)
+        if (isFrontPage(currentPageIndex)) {
+          // Agregar imagen centrada y obtener posición Y donde debe empezar el contenido
+          const pageContentStartY = addHeaderImage(doc, headerImage);
+          // Agregar número de página y datos del paciente
+          addPageNumberToCurrentPage(doc, currentPageNumber, nombreApellido, dni);
+          currentPageNumber++;
+          
+          // Si hay imagen, posicionar el contenido debajo de ella
+          if (pageContentStartY !== null) {
+            doc.y = pageContentStartY;
+            doc.x = 50; // Resetear X a margen izquierdo
+          }
+        }
       });
 
       // Collect PDF data
@@ -1234,12 +1404,23 @@ export const protocolController = {
         chunks.push(chunk);
       });
 
-      // Add page number to first page before writing content
-      addPageNumberToCurrentPage(doc, startingPageNumber);
-      currentPageNumber++;
+      // Add header elements to first page before writing content (solo si es frente)
+      let contentStartY: number | null = null;
+      if (isFrontPage(0)) {
+        // Agregar imagen centrada y obtener posición Y donde debe empezar el contenido
+        contentStartY = addHeaderImage(doc, headerImage);
+        // Agregar número de página y datos del paciente
+        addPageNumberToCurrentPage(doc, startingPageNumber, nombreApellido, dni);
+        currentPageNumber++;
+      }
 
-      // Escribir contenido al PDF
-      writePDFHeader(doc, protocol, visit, visitData, numeroHoja);
+      // Si hay imagen, posicionar el contenido debajo de ella
+      if (contentStartY !== null) {
+        doc.y = contentStartY;
+        doc.x = 50; // Resetear X a margen izquierdo
+      }
+
+      // Escribir contenido al PDF (sin el header antiguo)
       writePDFContent(doc, clinicalHistoryText);
       addSignatureToPDF(doc, user.sealSignaturePhoto || '');
       addStrikethroughLine(doc);
