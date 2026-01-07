@@ -95,10 +95,21 @@ function buildActivityDescription(activityData: any, activity: any, index: numbe
   return description;
 }
 
-// Construir descripciones de actividades (excluyendo numero_hoja)
+// Construir descripciones de actividades (excluyendo numero_hoja y actividades con excludeFromAI)
 function buildActivitiesDescriptions(visitData: any, visit: any): string {
   const filteredActivities = visitData.activities.filter((activityData: any) => {
-    return activityData.name !== 'numero_hoja' && activityData.name?.toLowerCase() !== 'numero_hoja';
+    // Excluir si excludeFromAI es true en activityData
+    if (activityData.excludeFromAI === true) {
+      return false;
+    }
+    
+    // Buscar la actividad en la visita para verificar excludeFromAI
+    const activity = visit.activities.find((a: any) => a._id.toString() === activityData.id);
+    if (activity && activity.excludeFromAI === true) {
+      return false;
+    }
+    
+    return true;
   });
 
   return filteredActivities
