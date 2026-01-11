@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.routes';
 import protocolRoutes from './routes/protocol.routes';
 import templateRoutes from './routes/template.routes';
 import statsRoutes from './routes/stats.routes';
+import systemActivityRoutes from './routes/systemActivity.routes';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -87,6 +88,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/protocols', protocolRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/system-activities', systemActivityRoutes);
 
 // ==========================================
 // MANEJO DE ERRORES
