@@ -54,6 +54,79 @@ function extractNumeroHoja(activities: any[]): string | null {
   return null;
 }
 
+// Extraer valor de una actividad por nombre
+function extractActivityValue(activities: any[], activityName: string): string | null {
+  const activity = activities.find((a: any) => 
+    a.name === activityName || a.name?.toLowerCase() === activityName.toLowerCase()
+  );
+  
+  if (!activity) {
+    return null;
+  }
+  
+  // Check if value exists and is not empty
+  if (activity.value === undefined || activity.value === null || activity.value === '') {
+    return null;
+  }
+  
+  // Handle different value types
+  if (typeof activity.value === 'string') {
+    const trimmed = activity.value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  
+  if (typeof activity.value === 'boolean') {
+    return activity.value ? 'Sí' : null; // Only return "Sí" for true, null for false
+  }
+  
+  if (typeof activity.value === 'number') {
+    return String(activity.value);
+  }
+  
+  // For arrays, join them
+  if (Array.isArray(activity.value)) {
+    const filtered = activity.value.filter((v: any) => v !== null && v !== undefined && v !== '');
+    return filtered.length > 0 ? filtered.join(', ') : null;
+  }
+  
+  // For objects, try to extract meaningful text
+  if (typeof activity.value === 'object') {
+    // If it's a medication tracking object or similar, skip it
+    if (activity.value.medicationTracking || activity.value.measurements) {
+      return null;
+    }
+    // Otherwise, try to stringify
+    const str = JSON.stringify(activity.value);
+    return str && str !== '{}' ? str : null;
+  }
+  
+  // Fallback: convert to string
+  const str = String(activity.value).trim();
+  return str.length > 0 ? str : null;
+}
+
+// Prepend mandatory fields to clinical history text
+function prependMandatoryFields(clinicalHistoryText: string, activities: any[]): string {
+  const cambioMedicacion = extractActivityValue(activities, 'Cambio en la medicación');
+  const antecedentes = extractActivityValue(activities, 'Antecedentes');
+  
+  const prependedTexts: string[] = [];
+  
+  if (cambioMedicacion) {
+    prependedTexts.push(`${cambioMedicacion}`);
+  }
+  
+  if (antecedentes) {
+    prependedTexts.push(`${antecedentes}`);
+  }
+  
+  if (prependedTexts.length > 0) {
+    return prependedTexts.join('\n\n') + '\n\n' + clinicalHistoryText;
+  }
+  
+  return clinicalHistoryText;
+}
+
 // Construir descripción de una actividad individual
 function buildActivityDescription(activityData: any, activity: any, index: number): string {
   const descriptionText = activity?.description || activityData.description || '';
@@ -1138,7 +1211,10 @@ export const protocolController = {
       const userPrompt = buildUserPrompt(protocol, visit, visitData, activitiesDescriptions);
 
       // Generar texto de historia clínica
-      const clinicalHistoryText = await generateClinicalHistoryText(systemPrompt, userPrompt);
+      let clinicalHistoryText = await generateClinicalHistoryText(systemPrompt, userPrompt);
+
+      // Prepend mandatory fields if they exist
+      clinicalHistoryText = prependMandatoryFields(clinicalHistoryText, visitData.activities || []);
 
       // Retornar texto en formato JSON
       res.json({
@@ -1218,6 +1294,9 @@ export const protocolController = {
         // Generar texto de historia clínica
         clinicalHistoryText = await generateClinicalHistoryText(systemPrompt, userPrompt);
       }
+
+      // Prepend mandatory fields if they exist (before PDF generation)
+      clinicalHistoryText = prependMandatoryFields(clinicalHistoryText, visitData.activities || []);
 
       // Extraer número de hoja
       const numeroHoja = extractNumeroHoja(visitData.activities);
