@@ -152,6 +152,10 @@ const templateActivitySchema = new Schema<Omit<IActivity, 'id' | 'visitId'>>(
         },
       },
     ],
+    excludeFromAI: {
+      type: Boolean,
+      default: false,
+    },
   },
   { _id: false }
 );

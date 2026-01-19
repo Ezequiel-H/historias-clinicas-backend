@@ -1,12 +1,18 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IActivity } from '../types';
 
-// Schema para Activity (reutilizado del Protocol)
-const activitySchema = new Schema<IActivity>(
+// Interface para SystemActivity con timestamps
+export interface ISystemActivity extends IActivity, Document {
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Schema para SystemActivity (similar a Activity pero sin visitId)
+const systemActivitySchema = new Schema<ISystemActivity>(
   {
     name: {
       type: String,
-      required: [true, 'El nombre de la actividad es requerido'],
+      required: [true, 'El nombre del campo es requerido'],
       trim: true,
     },
     description: {
@@ -114,7 +120,7 @@ const activitySchema = new Schema<IActivity>(
     helpText: String,
     medicationTrackingConfig: {
       medicationName: String,
-      dosageUnit: String, // Unidad de dosis (ej: 'comprimidos', 'ml', 'gotas', etc.)
+      dosageUnit: String,
       quantityPerDose: Number,
       frequencyType: {
         type: String,
@@ -157,36 +163,6 @@ const activitySchema = new Schema<IActivity>(
       default: false,
     },
   },
-  { _id: true }
-);
-
-// Interface para Template
-export interface ITemplate extends Document {
-  name: string;
-  description?: string;
-  activities: IActivity[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// Schema para Template
-const templateSchema = new Schema<ITemplate>(
-  {
-    name: {
-      type: String,
-      required: [true, 'El nombre de la plantilla es requerido'],
-      trim: true,
-    },
-    description: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    activities: {
-      type: [activitySchema],
-      default: [],
-    },
-  },
   {
     timestamps: true,
     toJSON: {
@@ -194,16 +170,6 @@ const templateSchema = new Schema<ITemplate>(
         ret.id = ret._id;
         delete ret._id;
         delete ret.__v;
-        
-        // Transformar IDs de actividades
-        if (ret.activities) {
-          ret.activities = ret.activities.map((activity: any) => {
-            const transformedActivity = { ...activity, id: activity._id };
-            delete transformedActivity._id;
-            return transformedActivity;
-          });
-        }
-        
         return ret;
       },
     },
@@ -211,8 +177,11 @@ const templateSchema = new Schema<ITemplate>(
 );
 
 // Índices
-templateSchema.index({ name: 1 });
-templateSchema.index({ createdAt: -1 });
+systemActivitySchema.index({ order: 1 });
+systemActivitySchema.index({ createdAt: -1 });
 
-export const Template = mongoose.model<ITemplate>('Template', templateSchema);
+export const SystemActivity = mongoose.model<ISystemActivity>(
+  'SystemActivity',
+  systemActivitySchema
+);
 

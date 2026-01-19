@@ -157,6 +157,10 @@ const activitySchema = new Schema<IActivity>(
         },
       },
     ],
+    excludeFromAI: {
+      type: Boolean,
+      default: false,
+    },
   },
   { _id: true }
 );
