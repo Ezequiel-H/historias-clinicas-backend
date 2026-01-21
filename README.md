@@ -47,7 +47,7 @@ CORS_ORIGIN=http://localhost:5173
 
 # OpenAI Configuration
 OPENAI_API_KEY=your-openai-api-key-here
-OPENAI_MODEL=gpt-4
+OPENAI_MODEL=gpt-5
 
 # Feature Flags
 MOCK_AI_CLINICAL_HISTORY=false  # Set to 'true' to use mock text instead of OpenAI
