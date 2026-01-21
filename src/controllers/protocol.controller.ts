@@ -7,6 +7,8 @@ import { Template } from '../models/Template';
 import { User } from '../models/User';
 import { OpenAIService } from '../services/openai.service';
 
+const getEnvActivityId = (key: string): string | undefined => process.env[key];
+
 // ==========================================
 // FUNCIONES AUXILIARES PARA GENERAR HISTORIA CLÍNICA
 // ==========================================
@@ -40,10 +42,21 @@ function readSystemPrompt(): string {
   return fs.readFileSync(promptPath, 'utf-8');
 }
 
+function findActivityById(activities: any[], activityId?: string): any | null {
+  if (!activityId) {
+    return null;
+  }
+
+  return activities.find(
+    (a: any) => a.id === activityId || a._id?.toString?.() === activityId
+  );
+}
+
 // Extraer número de hoja de las actividades
 function extractNumeroHoja(activities: any[]): string | null {
-  const numeroHojaActivity = activities.find((a: any) => 
-    a.name === 'Número de hoja' || a.name?.toLowerCase() === 'número_de_hoja'
+  const numeroHojaActivity = findActivityById(
+    activities,
+    getEnvActivityId('NUMERO_HOJA_ACTIVITY_ID')
   );
   
   if (numeroHojaActivity && numeroHojaActivity.value !== undefined && 
@@ -128,10 +141,9 @@ function prependMandatoryFields(clinicalHistoryText: string, activities: any[]):
 }
 // Extraer valor de "Frente de hoja" de las actividades
 function extractFrenteDeHoja(activities: any[]): boolean {
-  const frenteDeHojaActivity = activities.find((a: any) => 
-    a.name === 'Frente de hoja' || 
-    a.name?.toLowerCase() === 'frente de hoja' ||
-    a.name?.toLowerCase() === 'frente_de_hoja'
+  const frenteDeHojaActivity = findActivityById(
+    activities,
+    getEnvActivityId('FRENTE_HOJA_ACTIVITY_ID')
   );
   
   if (frenteDeHojaActivity && frenteDeHojaActivity.value !== undefined && 
@@ -153,13 +165,12 @@ function extractFrenteDeHoja(activities: any[]): boolean {
   return true;
 }
 
+
 // Extraer "Nombre y Apellido" de las actividades
 function extractNombreApellido(activities: any[]): string | null {
-  const nombreApellidoActivity = activities.find((a: any) => 
-    a.name === 'Nombre y Apellido' || 
-    a.name?.toLowerCase() === 'nombre y apellido' ||
-    a.name?.toLowerCase() === 'nombre_apellido' ||
-    a.name?.toLowerCase() === 'nombre_apellido'
+  const nombreApellidoActivity = findActivityById(
+    activities,
+    getEnvActivityId('PATIENT_NAME_ACTIVITY_ID')
   );
   
   if (nombreApellidoActivity && nombreApellidoActivity.value !== undefined && 
@@ -172,9 +183,9 @@ function extractNombreApellido(activities: any[]): string | null {
 
 // Extraer "DNI" de las actividades
 function extractDNI(activities: any[]): string | null {
-  const dniActivity = activities.find((a: any) => 
-    a.name === 'DNI' || 
-    a.name?.toLowerCase() === 'dni'
+  const dniActivity = findActivityById(
+    activities,
+    getEnvActivityId('PATIENT_DNI_ACTIVITY_ID')
   );
   
   if (dniActivity && dniActivity.value !== undefined && 
@@ -1429,9 +1440,6 @@ export const protocolController = {
         // Generar texto de historia clínica
         clinicalHistoryText = await generateClinicalHistoryText(systemPrompt, userPrompt);
       }
-
-      // Prepend mandatory fields if they exist (before PDF generation)
-      clinicalHistoryText = prependMandatoryFields(clinicalHistoryText, visitData.activities || []);
 
       // Extraer número de hoja
       const numeroHoja = extractNumeroHoja(visitData.activities);
