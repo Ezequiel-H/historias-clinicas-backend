@@ -2,10 +2,12 @@ import { Request, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import PDFDocument from 'pdfkit';
+import mammoth from 'mammoth';
 import { Protocol } from '../models/Protocol';
 import { Template } from '../models/Template';
 import { User } from '../models/User';
 import { OpenAIService } from '../services/openai.service';
+import { ProtocolGenerationSchema } from '../services/schemas/protocol.schema';
 
 // ==========================================
 // FUNCIONES AUXILIARES PARA GENERAR HISTORIA CLÍNICA
@@ -40,30 +42,424 @@ function readSystemPrompt(): string {
   return fs.readFileSync(promptPath, 'utf-8');
 }
 
+// Leer system prompt para generar protocolo desde sistemática
+function readSystematicPrompt(): string {
+  const promptPath = path.join(__dirname, '../system-prompts/generate-protocol-from-systematic.prompt.txt');
+  return fs.readFileSync(promptPath, 'utf-8');
+}
+
+// Generar protocolo mock para pruebas (sin usar OpenAI)
+function generateMockProtocol(_systematicText: string): any {
+  // Basado en el ejemplo proporcionado por el usuario
+  // El parámetro systematicText no se usa en el mock, pero se mantiene para consistencia con la API real
+  return {
+    name: "Protocolo de Laboratorio Eli Lilly I8F-MC-GPIT",
+    code: "I8F-MC-GPIT",
+    sponsor: "Eli Lilly",
+    description: "Un estudio de Fase 2, randomizado, doble ciego, controlado con placebo para evaluar la eficacia y la seguridad de dosis de Tirzepatida en investigación en participantes con diabetes Tipo 2 y obesidad",
+    visits: [
+      {
+        name: "Visita 1",
+        type: "presencial",
+        order: 1,
+        activities: [
+          {
+            name: "Nombre y apellido",
+            description: "Ingrese el nombre completo del paciente",
+            fieldType: "text_short",
+            required: true,
+            order: 1,
+            helpText: "Escriba el nombre tal como aparece en el documento"
+          },
+          {
+            name: "Fecha de nacimiento",
+            description: "Fecha de nacimiento del paciente",
+            fieldType: "datetime",
+            required: true,
+            order: 2,
+            datetimeIncludeDate: true,
+            datetimeIncludeTime: false
+          },
+          {
+            name: "Edad",
+            description: "Edad del paciente",
+            fieldType: "number_simple",
+            required: true,
+            order: 3,
+            expectedMin: 0,
+            expectedMax: 120,
+            decimalPlaces: 0
+          },
+          {
+            name: "Dirección",
+            description: "Dirección completa del paciente",
+            fieldType: "text_long",
+            required: true,
+            order: 4
+          },
+          {
+            name: "Teléfonos",
+            description: "Números de teléfono de contacto",
+            fieldType: "text_short",
+            required: true,
+            order: 5
+          },
+          {
+            name: "Mail",
+            description: "Dirección de correo electrónico",
+            fieldType: "text_short",
+            required: false,
+            order: 6
+          },
+          {
+            name: "Raza",
+            description: "Raza del paciente",
+            fieldType: "select_single",
+            required: true,
+            order: 7,
+            selectMultiple: false,
+            options: [
+              { value: "blanca", label: "Blanca" },
+              { value: "indioamericano", label: "Indioamericano" }
+            ]
+          },
+          {
+            name: "Etnia",
+            description: "Etnia del paciente",
+            fieldType: "select_single",
+            required: true,
+            order: 8,
+            selectMultiple: false,
+            options: [
+              { value: "hispano_latino", label: "Hispano o latino" },
+              { value: "no_hispano_latino", label: "No hispano o latino" }
+            ]
+          },
+          {
+            name: "Fecha de visita",
+            description: "Fecha en que se realiza la visita",
+            fieldType: "datetime",
+            required: true,
+            order: 9,
+            datetimeIncludeDate: true,
+            datetimeIncludeTime: false,
+            isVisitDate: true
+          },
+          {
+            name: "Protocolo",
+            description: "Información del protocolo",
+            fieldType: "text_long",
+            required: true,
+            order: 10,
+            helpText: "Protocolo: de Laboratorio Eli Lilly I8F-MC-GPIT \"Un estudio de Fase 2, randomizado, doble ciego, controlado con placebo para evaluar la eficacia y la seguridad de dosis de Tirzepatida en investigación en participantes con diabetes Tipo 2 y obesidad\""
+          },
+          {
+            name: "Evaluar criterios de inclusión y exclusión",
+            description: "Evaluar criterios de inclusión y exclusión en FORMULARIO DE ELEGIBILIDAD",
+            fieldType: "boolean",
+            required: true,
+            order: 11,
+            helpText: "Evaluar en FORMULARIO DE ELEGIBILIDAD (Versión 2.0 del 15/11/2023)"
+          },
+          {
+            name: "Número de paciente IWRS",
+            description: "Número de paciente asignado por IWRS",
+            fieldType: "text_short",
+            required: true,
+            order: 12,
+            helpText: "Después de la firma del ICF"
+          },
+          {
+            name: "Antecedentes médicos",
+            description: "Reinterrogar antecedentes médicos",
+            fieldType: "text_long",
+            required: true,
+            order: 13,
+            helpText: "Aclarar la intensidad de cada antecedente. Incluir: Obesidad, Diabetes 2, enfermedad de la vesícula biliar, antecedentes CV, carcinoma medular de tiroides, pancreatitis y apnea obstructiva del sueño"
+          },
+          {
+            name: "Uso de sustancias",
+            description: "Uso de sustancias pasado/actual",
+            fieldType: "select_single",
+            required: false,
+            order: 14,
+            selectMultiple: true,
+            options: [
+              { value: "tabaco", label: "Tabaco" },
+              { value: "alcohol", label: "Alcohol" },
+              { value: "otras", label: "Otras sustancias" }
+            ]
+          },
+          {
+            name: "Tabaco",
+            description: "Historial de tabaquismo",
+            fieldType: "select_single",
+            required: false,
+            order: 15,
+            selectMultiple: false,
+            options: [
+              { value: "nunca_fumo", label: "Nunca fumó" },
+              { value: "actual", label: "Actual" },
+              { value: "previo", label: "Previo" },
+              { value: "dejo", label: "Dejó" }
+            ],
+            helpText: "Si dejó o es actual, especificar fecha de inicio y fin, cantidad"
+          },
+          {
+            name: "Alcohol",
+            description: "Consumo de alcohol",
+            fieldType: "select_single",
+            required: false,
+            order: 16,
+            selectMultiple: false,
+            options: [
+              { value: "nunca", label: "Nunca" },
+              { value: "dejo", label: "Dejó" },
+              { value: "actual", label: "Actual" }
+            ],
+            helpText: "Fecha de inicio, frecuencia semanal y mensual. Cerveza (Unidad 360 ml), Vino (unidad 150 ml), Spirits (Unidad 45 ml)"
+          },
+          {
+            name: "Medicación concomitante",
+            description: "Reinterrogar medicación concomitante",
+            fieldType: "text_long",
+            required: true,
+            order: 17,
+            helpText: "Documentar uso de medicación reductora de peso y para la DBTs en los últimos 12 meses. Registrar DBI AP (1 GR) o DBI AP FORTE o DBI AP 500. Documentar si el paciente usó GLP1 (en caso afirmativo, fecha en que dejó)"
+          },
+          {
+            name: "Talla",
+            description: "Talla del paciente en centímetros",
+            fieldType: "number_simple",
+            required: true,
+            order: 18,
+            measurementUnit: "cm",
+            expectedMin: 100,
+            expectedMax: 250,
+            decimalPlaces: 1,
+            helpText: "Descalzo, en cm CON 1 DECIMAL DE MILIMETRO"
+          },
+          {
+            name: "Peso",
+            description: "Peso corporal del paciente",
+            fieldType: "number_simple",
+            required: true,
+            order: 19,
+            measurementUnit: "kg",
+            expectedMin: 30,
+            expectedMax: 200,
+            decimalPlaces: 1,
+            helpText: "Con ropa ligera, sin calzado, luego de vaciar la vejiga",
+            validationRules: [
+              {
+                name: "IMC mínimo requerido",
+                condition: "min",
+                minValue: 35.0,
+                severity: "error",
+                message: "IMC debe ser mayor a 35.0 kg/m2",
+                isActive: true
+              }
+            ]
+          },
+          {
+            name: "IMC",
+            description: "Índice de Masa Corporal (calculado automáticamente)",
+            fieldType: "calculated",
+            required: false,
+            order: 20,
+            calculationFormula: "peso / ((talla / 100) * (talla / 100))",
+            measurementUnit: "kg/m²",
+            decimalPlaces: 2,
+            helpText: "Debe ser mayor a >35.0 kg/m2",
+            validationRules: [
+              {
+                name: "IMC fuera de criterio",
+                condition: "formula",
+                formula: "peso / ((talla / 100) * (talla / 100))",
+                formulaOperator: "<=",
+                value: 35.0,
+                severity: "error",
+                message: "IMC debe ser mayor a 35.0 kg/m2",
+                isActive: true
+              }
+            ]
+          },
+          {
+            name: "Examen físico",
+            description: "Examen físico completo",
+            fieldType: "text_long",
+            required: true,
+            order: 21,
+            helpText: "Cardiovascular, respiratorio, gastrointestinal, neurológico y examen de tiroides"
+          },
+          {
+            name: "Presión arterial",
+            description: "Medición de presión arterial",
+            fieldType: "number_compound",
+            required: true,
+            order: 22,
+            allowMultiple: true,
+            repeatCount: 2,
+            requireTime: true,
+            requireTimePerMeasurement: true,
+            timeIntervalMinutes: 1,
+            compoundConfig: {
+              fields: [
+                { name: "sistolica", label: "Sistólica", unit: "mmHg" },
+                { name: "diastolica", label: "Diastólica", unit: "mmHg" }
+              ]
+            },
+            helpText: "Signos vitales: sentado luego de 5 minutos de reposo. Elegir brazo preferentemente no dominante. Intervalo entre TAs de al menos 1 minuto. Ejemplo: TA 1: 10:01, TA 2: 10:02"
+          },
+          {
+            name: "Frecuencia cardíaca",
+            description: "Frecuencia cardíaca en reposo",
+            fieldType: "number_simple",
+            required: true,
+            order: 23,
+            measurementUnit: "lpm",
+            expectedMin: 40,
+            expectedMax: 120,
+            decimalPlaces: 0,
+            allowMultiple: true,
+            repeatCount: 2,
+            requireTime: true,
+            requireTimePerMeasurement: true,
+            helpText: "Registrar junto con cada TA"
+          },
+          {
+            name: "C-SSRS",
+            description: "Médico realiza C-SSRS inicial",
+            fieldType: "boolean",
+            required: true,
+            order: 24
+          },
+          {
+            name: "PHQ-9",
+            description: "Paciente completa PHQ-9. Se revisa y documenta puntuación. Firma el médico",
+            fieldType: "number_simple",
+            required: true,
+            order: 25,
+            expectedMin: 0,
+            expectedMax: 27,
+            decimalPlaces: 0
+          },
+          {
+            name: "Laboratorio",
+            description: "Extracciones de laboratorio",
+            fieldType: "text_long",
+            required: true,
+            order: 26,
+            helpText: "No requiere ayunas. Entrega Orina. Test de embarazo en fértiles en sangre. En mujeres con amenorrea pedir FSH para confirmar menopausia Y HCG (Sub unidad Beta)"
+          },
+          {
+            name: "Eventos adversos",
+            description: "Registrar si presentó eventos adversos durante la visita",
+            fieldType: "boolean",
+            required: false,
+            order: 27
+          },
+          {
+            name: "Entrenamiento al paciente",
+            description: "Se entrena al paciente acerca de medicación prohibida durante el estudio",
+            fieldType: "text_long",
+            required: true,
+            order: 28,
+            helpText: "Medicación prohibida (son los GLP-1). Hombre: no donar esperma durante el estudio ni 4 meses después. Hombres con pareja fértil: usar preservativos durante todo el estudio y hasta 4 meses después. Mujer fértil: utilizar 2 métodos anticonceptivos efectivos, al menos 1 método debe ser altamente efectivo durante el estudio y 2 meses después de la última dosis"
+          },
+          {
+            name: "Tarjeta de contacto",
+            description: "Se entrega tarjeta de contacto, versión 15-Sep-14",
+            fieldType: "boolean",
+            required: true,
+            order: 29,
+            helpText: "Indicar al paciente que se contacte con el centro en caso de consultas"
+          }
+        ]
+      }
+    ]
+  };
+}
+
+// Extraer texto de archivo PDF
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  try {
+    // pdf-parse v2.4.5 exporta PDFParse como clase
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParseModule = require('pdf-parse');
+
+    // La versión 2.x usa una clase PDFParse
+    if (pdfParseModule.PDFParse) {
+      const PDFParseClass = pdfParseModule.PDFParse;
+      const parser = new PDFParseClass({ data: buffer });
+      const result = await parser.getText({});
+      return result.text;
+    }
+
+    // Fallback para versiones anteriores que exportan función directa
+    const pdfParse = typeof pdfParseModule === 'function'
+      ? pdfParseModule
+      : pdfParseModule.default || pdfParseModule;
+
+    if (typeof pdfParse !== 'function') {
+      throw new Error('No se pudo encontrar la función pdfParse en el módulo');
+    }
+
+    const data = await pdfParse(buffer);
+    return data.text;
+  } catch (error) {
+    throw new Error(`Error al leer PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+  }
+}
+
+// Extraer texto de archivo DOCX
+async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
+  try {
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value;
+  } catch (error) {
+    throw new Error(`Error al leer DOCX: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+  }
+}
+
+// Extraer texto de archivo según su extensión
+async function extractTextFromFile(buffer: Buffer, mimetype: string): Promise<string> {
+  if (mimetype === 'application/pdf') {
+    return extractTextFromPDF(buffer);
+  } else if (
+    mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    mimetype === 'application/msword'
+  ) {
+    return extractTextFromDOCX(buffer);
+  } else {
+    throw new Error(`Tipo de archivo no soportado: ${mimetype}. Se soportan PDF y DOCX.`);
+  }
+}
+
 // Extraer número de hoja de las actividades
 function extractNumeroHoja(activities: any[]): string | null {
-  const numeroHojaActivity = activities.find((a: any) => 
+  const numeroHojaActivity = activities.find((a: any) =>
     a.name === 'Número de hoja' || a.name?.toLowerCase() === 'número_de_hoja'
   );
-  
-  if (numeroHojaActivity && numeroHojaActivity.value !== undefined && 
-      numeroHojaActivity.value !== null && numeroHojaActivity.value !== '') {
+
+  if (numeroHojaActivity && numeroHojaActivity.value !== undefined &&
+    numeroHojaActivity.value !== null && numeroHojaActivity.value !== '') {
     return String(numeroHojaActivity.value);
   }
-  
+
   return null;
 }
 
 // Extraer valor de "Frente de hoja" de las actividades
 function extractFrenteDeHoja(activities: any[]): boolean {
-  const frenteDeHojaActivity = activities.find((a: any) => 
-    a.name === 'Frente de hoja' || 
+  const frenteDeHojaActivity = activities.find((a: any) =>
+    a.name === 'Frente de hoja' ||
     a.name?.toLowerCase() === 'frente de hoja' ||
     a.name?.toLowerCase() === 'frente_de_hoja'
   );
-  
-  if (frenteDeHojaActivity && frenteDeHojaActivity.value !== undefined && 
-      frenteDeHojaActivity.value !== null && frenteDeHojaActivity.value !== '') {
+
+  if (frenteDeHojaActivity && frenteDeHojaActivity.value !== undefined &&
+    frenteDeHojaActivity.value !== null && frenteDeHojaActivity.value !== '') {
     // Convertir a boolean: puede ser true, "true", 1, "1", etc.
     const value = frenteDeHojaActivity.value;
     if (typeof value === 'boolean') {
@@ -76,40 +472,40 @@ function extractFrenteDeHoja(activities: any[]): boolean {
       return value === 1;
     }
   }
-  
+
   // Por defecto, asumir que la primera página es frente si no se especifica
   return true;
 }
 
 // Extraer "Nombre y Apellido" de las actividades
 function extractNombreApellido(activities: any[]): string | null {
-  const nombreApellidoActivity = activities.find((a: any) => 
-    a.name === 'Nombre y Apellido' || 
+  const nombreApellidoActivity = activities.find((a: any) =>
+    a.name === 'Nombre y Apellido' ||
     a.name?.toLowerCase() === 'nombre y apellido' ||
     a.name?.toLowerCase() === 'nombre_apellido' ||
     a.name?.toLowerCase() === 'nombre_apellido'
   );
-  
-  if (nombreApellidoActivity && nombreApellidoActivity.value !== undefined && 
-      nombreApellidoActivity.value !== null && nombreApellidoActivity.value !== '') {
+
+  if (nombreApellidoActivity && nombreApellidoActivity.value !== undefined &&
+    nombreApellidoActivity.value !== null && nombreApellidoActivity.value !== '') {
     return String(nombreApellidoActivity.value);
   }
-  
+
   return null;
 }
 
 // Extraer "DNI" de las actividades
 function extractDNI(activities: any[]): string | null {
-  const dniActivity = activities.find((a: any) => 
-    a.name === 'DNI' || 
+  const dniActivity = activities.find((a: any) =>
+    a.name === 'DNI' ||
     a.name?.toLowerCase() === 'dni'
   );
-  
-  if (dniActivity && dniActivity.value !== undefined && 
-      dniActivity.value !== null && dniActivity.value !== '') {
+
+  if (dniActivity && dniActivity.value !== undefined &&
+    dniActivity.value !== null && dniActivity.value !== '') {
     return String(dniActivity.value);
   }
-  
+
   return null;
 }
 
@@ -120,11 +516,11 @@ function getHeaderImage(): Buffer | null {
     const imageName = 'Logo Cedic chico.png';
     const assetsPath = path.join(__dirname, '../assets');
     const imagePath = path.join(assetsPath, imageName);
-    
+
     if (fs.existsSync(imagePath)) {
       return fs.readFileSync(imagePath);
     }
-    
+
     console.warn('No se encontró imagen del header en assets');
     return null;
   } catch (error) {
@@ -137,11 +533,11 @@ function getHeaderImage(): Buffer | null {
 function buildActivityDescription(activityData: any, activity: any, index: number): string {
   const descriptionText = activity?.description || activityData.description || '';
   let description = `\n${index + 1}. ${activityData.name}`;
-  
+
   if (descriptionText) {
     description += `\n   Descripción: ${descriptionText}`;
   }
-  
+
   // Agregar valores
   if (activityData.value !== undefined && activityData.value !== null && activityData.value !== '') {
     if (typeof activityData.value === 'object' && !Array.isArray(activityData.value)) {
@@ -155,7 +551,7 @@ function buildActivityDescription(activityData: any, activity: any, index: numbe
       description += `\n   Valor: ${activityData.value}`;
     }
   }
-  
+
   // Agregar mediciones detalladas
   if (activityData.measurements && activityData.measurements.length > 0) {
     description += `\n   Mediciones:`;
@@ -166,11 +562,11 @@ function buildActivityDescription(activityData: any, activity: any, index: numbe
       if (measurement.time) description += ` Hora: ${measurement.time}`;
     });
   }
-  
+
   // Agregar fecha y hora si existen
   if (activityData.date) description += `\n   Fecha: ${activityData.date}`;
   if (activityData.time) description += `\n   Hora: ${activityData.time}`;
-  
+
   return description;
 }
 
@@ -206,11 +602,11 @@ async function getAuthenticatedUser(userId: string): Promise<any> {
 // Generar texto de historia clínica (con o sin mock)
 async function generateClinicalHistoryText(systemPrompt: string, userPrompt: string): Promise<string> {
   const mockAI = process.env.MOCK_AI_CLINICAL_HISTORY === 'true';
-  
+
   if (mockAI) {
     return "Paciente Juan Pérez, sexo masculino, de 39 años, nacido el 15/06/1985, con domicilio en Av. Siempre Viva 742, Buenos Aires, Argentina, quien concurre en el marco del protocolo Ezequiel Horowitz (PRO-1) para la visita denominada \"assassa\", correspondiente al seguimiento clínico. La evaluación se realizó el día 10/01/2025, quedando registrada dentro de la visita fechada el 26/12/2025 según cronograma del protocolo.\n\nAl inicio de la consulta se confirmó el trabajo bajo protocolo, la versión vigente del Consentimiento Informado y la firma del mismo, así como la correcta evaluación de los criterios de inclusión y exclusión. Se asignó al paciente el número IWRS-000123. Se efectuó una reinterrogación completa de antecedentes médicos, refiriendo obesidad grado I desde hace aproximadamente cinco años e hipertensión arterial leve. Niega antecedentes de diabetes mellitus tipo 2, enfermedad de la vesícula biliar, carcinoma medular de tiroides y pancreatitis. Refiere apnea obstructiva del sueño leve, sin uso de CPAP.\n\nEn cuanto a hábitos, el paciente presenta antecedente de tabaquismo previo, con inicio en 2005 y cese en diciembre de 2018, con un consumo aproximado de 10 cigarrillos diarios. Refiere consumo actual de alcohol desde el año 2003, con una frecuencia aproximada de dos veces por semana, equivalente a ocho consumos mensuales, habitualmente dos unidades de cerveza y una unidad de vino por ocasión, sin consumo de bebidas destiladas.\n\nSe reinterrogó la medicación concomitante, constatándose uso previo de medicación reductora de peso con orlistat durante seis meses en el último año, así como tratamiento con metformina 850 mg. Niega uso previo de agonistas GLP-1.\n\nEn la evaluación antropométrica se registró una talla de 175,5 cm y un peso de 92,3 kg, con un índice de masa corporal de 29,9 kg/m². Al examen físico, el paciente se encontraba en buen estado general. El examen cardiovascular mostró ruidos cardíacos rítmicos, sin soplos audibles. El examen respiratorio evidenció murmullo vesicular conservado bilateralmente. El abdomen se palpó blando y no doloroso, sin visceromegalias. El examen neurológico no mostró signos de focalización y la glándula tiroides no resultó palpable.\n\nSe realizaron mediciones de presión arterial en brazo derecho. A las 09:15 h se registró una presión arterial de 130/85 mmHg con una frecuencia cardíaca de 72 latidos por minuto, y a las 09:20 h una segunda medición mostró valores de 128/82 mmHg con una frecuencia cardíaca de 70 latidos por minuto, evidenciando cifras tensionales levemente elevadas pero estables entre ambas tomas.\n\nDurante la visita, el médico realizó la evaluación inicial de riesgo suicida mediante C-SSRS y el paciente completó el cuestionario PHQ-9, obteniendo una puntuación de 6, compatible con sintomatología depresiva leve. Se efectuó extracción de muestras de laboratorio a las 10:30 h del mismo día y se realizó entrega de muestra de orina. No correspondió la realización de test de embarazo ni determinaciones hormonales específicas por tratarse de un paciente masculino.\n\nNo se registraron eventos adversos durante el transcurso de la visita. Se brindó entrenamiento específico sobre medicación prohibida, incluyendo agonistas GLP-1, así como indicaciones dirigidas a hombres respecto a la no donación de esperma y el uso de preservativo en caso de tener pareja fértil. Finalmente, se entregó tarjeta de contacto y se indicó al paciente comunicarse con el centro ante cualquier duda o eventualidad, dejando constancia de una adecuada comprensión de las indicaciones y sin incidencias clínicas al cierre de la consulta.";
   }
-  
+
   const aiService = new OpenAIService();
   console.log("prompt", aiService.buildPrompt(systemPrompt, userPrompt));
   return await aiService.sendMessageText(systemPrompt, userPrompt);
@@ -240,25 +636,25 @@ function addPageNumberToCurrentPage(doc: any, pageNumber: number, nombreApellido
   const headerY = margin - 25; // Top of the page, higher up
   const fontSize = 10;
   const spacing = 10; // Espacio entre los elementos
-  
+
   // Save current position
   const savedX = doc.x;
   const savedY = doc.y;
-  
+
   doc.fontSize(fontSize).font('Helvetica');
-  
+
   // Calcular posición del número de página (derecha)
   const pageNumberX = pageWidth - margin - 20;
   const pageNumberWidth = doc.widthOfString(String(pageNumber));
   let currentX = pageNumberX - pageNumberWidth;
-  
+
   // Agregar número de página (derecha)
   doc.text(
     String(pageNumber),
     currentX,
     headerY
   );
-  
+
   // Agregar DNI si existe (a la izquierda del número de página)
   if (dni) {
     currentX -= spacing;
@@ -270,7 +666,7 @@ function addPageNumberToCurrentPage(doc: any, pageNumber: number, nombreApellido
       headerY
     );
   }
-  
+
   // Agregar Nombre y Apellido si existe (a la izquierda del DNI)
   if (nombreApellido) {
     currentX -= spacing;
@@ -282,7 +678,7 @@ function addPageNumberToCurrentPage(doc: any, pageNumber: number, nombreApellido
       headerY
     );
   }
-  
+
   // Restore position
   doc.x = savedX;
   doc.y = savedY;
@@ -292,36 +688,36 @@ function addPageNumberToCurrentPage(doc: any, pageNumber: number, nombreApellido
 // Retorna la posición Y donde debería empezar el contenido (debajo de la imagen)
 function addHeaderImage(doc: any, imageBuffer: Buffer | null): number | null {
   if (!imageBuffer) return null;
-  
+
   try {
     const pageWidth = doc.page.width;
     const margin = 50;
     const headerY = margin - 25; // Top of the page, same as page number
-    
+
     // Save current position
     const savedX = doc.x;
     const savedY = doc.y;
-    
+
     // Tamaño de la imagen (ajustar según necesidad)
     const imageWidth = 200;
     const imageHeight = 60;
-    
+
     // Centrar la imagen horizontalmente
     const x = (pageWidth - imageWidth) / 2;
     const y = headerY;
-    
+
     doc.image(imageBuffer, x, y, {
       width: imageWidth,
       height: imageHeight,
     });
-    
+
     // Calcular posición Y donde debería empezar el contenido (debajo de la imagen + espacio)
     const contentStartY = y + imageHeight + 15; // 15px de espacio después de la imagen
-    
+
     // Restore position
     doc.x = savedX;
     doc.y = savedY;
-    
+
     // Retornar la posición Y para que el contenido empiece ahí
     return contentStartY;
   } catch (error) {
@@ -344,7 +740,7 @@ function addSignatureToPDF(doc: any, sealSignaturePhoto: string): void {
   if (!sealSignaturePhoto) return;
 
   doc.moveDown(2);
-  
+
   try {
     const imageBuffer = convertBase64ToBuffer(sealSignaturePhoto);
     const pageWidth = doc.page.width;
@@ -353,12 +749,12 @@ function addSignatureToPDF(doc: any, sealSignaturePhoto: string): void {
     const imageHeight = 80;
     const x = pageWidth - margin - imageWidth;
     const y = doc.y;
-    
+
     doc.image(imageBuffer, x, y, {
       width: imageWidth,
       height: imageHeight,
     });
-    
+
     doc.y = y + imageHeight;
   } catch (error) {
     console.error('Error al agregar firma al PDF:', error);
@@ -371,13 +767,13 @@ function addStrikethroughLine(doc: any): void {
   const pageHeight = doc.page.height;
   const margin = 50;
   const currentY = doc.y;
-  
+
   if (currentY < pageHeight - margin - 100) {
     const lineStartX = margin;
     const lineStartY = currentY + 20;
     const lineEndX = pageWidth - margin;
     const lineEndY = pageHeight - margin;
-    
+
     doc
       .moveTo(lineStartX, lineStartY)
       .lineTo(lineEndX, lineEndY)
@@ -486,7 +882,7 @@ export const protocolController = {
       });
     } catch (error: any) {
       console.error('Error al crear protocolo:', error);
-      
+
       if (error.code === 11000) {
         res.status(400).json({
           success: false,
@@ -535,7 +931,7 @@ export const protocolController = {
       });
     } catch (error: any) {
       console.error('Error al actualizar protocolo:', error);
-      
+
       if (error.code === 11000) {
         res.status(400).json({
           success: false,
@@ -583,12 +979,12 @@ export const protocolController = {
   // Función helper para obtener la plantilla "Visita Basica" (siempre busca la versión más reciente)
   getBasicVisitTemplate: async (): Promise<any> => {
     const templateName = 'Visita Basica';
-    
+
     // Siempre buscar la plantilla más reciente por nombre (case-insensitive)
-    let template = await Template.findOne({ 
-      name: { $regex: new RegExp(`^${templateName}$`, 'i') } 
+    let template = await Template.findOne({
+      name: { $regex: new RegExp(`^${templateName}$`, 'i') }
     });
-    
+
     if (!template) {
       // Si no existe, crear la plantilla con los campos requeridos
       const basicActivities = [
@@ -633,7 +1029,7 @@ export const protocolController = {
       await template.save();
       console.log(`Plantilla "${templateName}" creada automáticamente`);
     }
-    
+
     return template;
   },
 
@@ -659,7 +1055,7 @@ export const protocolController = {
 
       // Recargar el protocolo para obtener los IDs correctos
       const updatedProtocol = await Protocol.findById(protocolId);
-      
+
       if (!updatedProtocol) {
         res.status(500).json({
           success: false,
@@ -679,7 +1075,7 @@ export const protocolController = {
       // Importar automáticamente la plantilla "visita basica" con sus actividades actuales
       if (basicTemplate && basicTemplate.activities && basicTemplate.activities.length > 0) {
         const visit = visitsArray.id(visitId);
-        
+
         if (visit) {
           // Obtener nombres de actividades existentes para evitar duplicados
           const existingActivityNames = new Set(
@@ -788,7 +1184,7 @@ export const protocolController = {
       // Reintentar en caso de error de versión (hasta 3 intentos)
       let attempts = 0;
       const maxAttempts = 3;
-      
+
       while (attempts < maxAttempts) {
         try {
           const protocol = await Protocol.findById(protocolId);
@@ -1346,17 +1742,17 @@ export const protocolController = {
 
       // Extraer número de hoja
       const numeroHoja = extractNumeroHoja(visitData.activities);
-      
+
       // Extraer si la primera página es frente de hoja
       const primeraPaginaEsFrente = extractFrenteDeHoja(visitData.activities);
-      
+
       // Extraer datos del paciente
       const nombreApellido = extractNombreApellido(visitData.activities);
       const dni = extractDNI(visitData.activities);
-      
+
       // Leer imagen del header desde archivo estático
       const headerImage = getHeaderImage();
-      
+
       // Determinar el número inicial de página
       const startingPageNumber = numeroHoja ? parseInt(numeroHoja, 10) : 1;
       let currentPageNumber = startingPageNumber;
@@ -1390,7 +1786,7 @@ export const protocolController = {
           // Agregar número de página y datos del paciente
           addPageNumberToCurrentPage(doc, currentPageNumber, nombreApellido, dni);
           currentPageNumber++;
-          
+
           // Si hay imagen, posicionar el contenido debajo de ella
           if (pageContentStartY !== null) {
             doc.y = pageContentStartY;
@@ -1427,7 +1823,7 @@ export const protocolController = {
 
       // Finalizar PDF y esperar a que termine
       doc.end();
-      
+
       await new Promise<void>((resolve) => {
         doc.on('end', () => {
           resolve();
@@ -1443,6 +1839,130 @@ export const protocolController = {
       res.status(500).json({
         success: false,
         error: 'Error al generar historia clínica',
+      });
+    }
+  },
+
+  // Generar protocolo desde archivo sistemática
+  generateProtocolFromSystematic: async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Verificar que se haya subido un archivo
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          error: 'No se proporcionó ningún archivo',
+        });
+        return;
+      }
+
+      const file = req.file;
+      const allowedMimeTypes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword',
+      ];
+
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        res.status(400).json({
+          success: false,
+          error: 'Tipo de archivo no soportado. Se aceptan PDF y DOCX (.docx)',
+        });
+        return;
+      }
+
+      // Extraer texto del archivo
+      const systematicText = await extractTextFromFile(file.buffer, file.mimetype);
+
+      if (!systematicText || systematicText.trim().length === 0) {
+        res.status(400).json({
+          success: false,
+          error: 'No se pudo extraer texto del archivo o el archivo está vacío',
+        });
+        return;
+      }
+
+      // Verificar si usar mock o IA real
+      const mockAI = process.env.MOCK_AI_PROTOCOL_GENERATION === 'true';
+
+      let generatedProtocol: any;
+
+      if (mockAI) {
+        console.log('[MOCK] Generando protocolo mock desde sistemática...');
+        // Generar protocolo mock
+        generatedProtocol = generateMockProtocol(systematicText);
+
+        // Validar que el mock cumple con el schema
+        const validationResult = ProtocolGenerationSchema.safeParse(generatedProtocol);
+        if (!validationResult.success) {
+          console.error('[MOCK] Error de validación en protocolo mock:', validationResult.error);
+          throw new Error('Error de validación en protocolo mock generado');
+        }
+        generatedProtocol = validationResult.data;
+      } else {
+        // Leer system prompt
+        const systemPrompt = readSystematicPrompt();
+
+        // Generar protocolo usando IA
+        const aiService = new OpenAIService();
+        const userPrompt = `Sistemática:\n\n${systematicText}\n\nGenera el JSON con la estructura de protocolo, visitas y actividades según la sistemática proporcionada.`;
+
+        generatedProtocol = await aiService.sendMessage(
+          systemPrompt,
+          userPrompt,
+          ProtocolGenerationSchema
+        );
+      }
+
+      // Verificar que el código del protocolo no exista ya
+      const existingProtocol = await Protocol.findOne({ code: generatedProtocol.code.toUpperCase() });
+      if (existingProtocol) {
+        res.status(400).json({
+          success: false,
+          error: `Ya existe un protocolo con el código ${generatedProtocol.code}. Por favor, verifica la sistemática o edita el código generado.`,
+        });
+        return;
+      }
+
+      // Crear protocolo en la base de datos
+      const newProtocol = new Protocol({
+        name: generatedProtocol.name,
+        code: generatedProtocol.code.toUpperCase(),
+        sponsor: generatedProtocol.sponsor,
+        description: generatedProtocol.description,
+        status: 'draft', // Por defecto en borrador para revisión
+        visits: generatedProtocol.visits,
+        clinicalRules: [], // Sin reglas clínicas por defecto
+      });
+
+      const savedProtocol = await newProtocol.save();
+
+      // Transformar para respuesta
+      const protocolResponse = savedProtocol.toJSON();
+
+      res.json({
+        success: true,
+        data: protocolResponse,
+        message: 'Protocolo generado exitosamente desde la sistemática',
+      });
+    } catch (error) {
+      console.error('Error al generar protocolo desde sistemática:', error);
+
+      let errorMessage = 'Error al generar protocolo desde sistemática';
+      if (error instanceof Error) {
+        if (error.message.includes('Error de validación')) {
+          errorMessage = `Error en la validación de datos generados: ${error.message}`;
+        } else if (error.message.includes('No se recibió respuesta')) {
+          errorMessage = 'No se recibió respuesta de la IA. Por favor, intenta nuevamente.';
+        } else if (error.message.includes('Error al leer')) {
+          errorMessage = error.message;
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      res.status(500).json({
+        success: false,
+        error: errorMessage,
       });
     }
   },

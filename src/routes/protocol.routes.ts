@@ -1,8 +1,29 @@
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
+import multer from 'multer';
 import { protocolController } from '../controllers/protocol.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validator';
+
+// Configurar multer para manejar archivos en memoria
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10 MB
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+    ];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de archivo no soportado. Se aceptan PDF y DOCX (.docx)'));
+    }
+  },
+});
 
 const router = Router();
 
@@ -152,6 +173,13 @@ router.delete(
   '/:id',
   validate(idValidation),
   protocolController.deleteProtocol
+);
+
+// Generar protocolo desde archivo sistemática
+router.post(
+  '/generate-from-systematic',
+  upload.single('systematic'),
+  protocolController.generateProtocolFromSystematic
 );
 
 // ==========================================

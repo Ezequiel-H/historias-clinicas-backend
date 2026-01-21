@@ -51,6 +51,7 @@ OPENAI_MODEL=gpt-4
 
 # Feature Flags
 MOCK_AI_CLINICAL_HISTORY=false  # Set to 'true' to use mock text instead of OpenAI
+MOCK_AI_PROTOCOL_GENERATION=false  # Set to 'true' to use mock protocol generation instead of OpenAI
 ```
 
 3. **Iniciar servidor de desarrollo:**

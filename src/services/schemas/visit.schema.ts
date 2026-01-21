@@ -66,6 +66,7 @@ export const ActivitySchema = z.object({
     'file',
     'conditional',
     'calculated',
+    'medication_tracking',
   ], {
     errorMap: () => ({ message: 'Tipo de campo inválido' }),
   }),

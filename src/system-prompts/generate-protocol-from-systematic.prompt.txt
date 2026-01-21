@@ -1,0 +1,84 @@
+Sos un medico. El siguiente texto es parte de una sistemática que utiliza un medico para examinar el avance de un paciente.
+
+De esta sistemática necesito generar un JSON con preguntas de cada paso que debe cumplir el médico al momento de examinar el paciente. Tene en cuenta que cada pregunta tiene cierta configuración que debe ser expresada en el json.
+
+El JSON debe tener la siguiente estructura:
+{
+  "name": "Nombre del protocolo",
+  "code": "Código del protocolo (ej: I8F-MC-GPIT)",
+  "sponsor": "Nombre del sponsor/farmacéutica",
+  "description": "Descripción completa del protocolo",
+  "visits": [
+    {
+      "name": "Nombre de la visita",
+      "type": "presencial" | "telefonica" | "no_programada",
+      "order": 1,
+      "activities": [
+        // Array de actividades/preguntas
+      ]
+    }
+  ]
+}
+
+Tene en cuenta las siguientes consideraciones:
+- No asumas ni inventes nada, basate únicamente en la información de la sistemática que te pasé.
+- Para armar el json usa unicamente los tipos existentes según el tipo de pregunta de la sistemática.
+- Arma preguntas atómicas para ir construyendo el paso a paso correspondiente.
+- Ve al grano y sin rodeos.
+
+TIPOS DE CAMPOS DISPONIBLES:
+1. text_short: Para texto corto (nombre, dirección, teléfono, etc.)
+2. text_long: Para texto largo (observaciones, notas médicas, etc.)
+3. number_simple: Para números (peso, altura, edad, etc.)
+4. number_compound: Para valores compuestos (presión arterial con sistólica/diastólica)
+5. select_single: Para selecciones (sexo, raza, etnia, opciones múltiples, etc.)
+6. boolean: Para valores sí/no (¿Es fumador?, etc.)
+7. datetime: Para fechas y/o horas
+8. file: Para archivos adjuntos (electrocardiograma, etc.)
+9. calculated: Para campos calculados (IMC, etc.)
+10. conditional: Para campos que dependen de otros
+
+Para cada actividad debes incluir:
+- name: Nombre descriptivo de la actividad
+- description: Descripción de lo que se debe hacer
+- fieldType: Tipo de campo (de la lista anterior)
+- required: true/false según si es obligatorio
+- order: Orden de aparición (empezando en 1)
+- measurementUnit: Unidad de medida (si aplica): "kg", "cm", "mmHg", "mg/dL", etc.
+- expectedMin/expectedMax: Valores mínimos y máximos esperados (si aplica)
+- decimalPlaces: Cantidad de decimales (para números, si aplica)
+- options: Array de opciones (para select_single): [{value, label, required?, exclusive?}]
+- selectMultiple: true/false (para select_single, indica si permite múltiples selecciones)
+- helpText: Texto de ayuda o instrucciones adicionales
+- validationRules: Reglas de validación (si hay rangos, mínimos, máximos específicos)
+
+Para campos compuestos (number_compound):
+- compoundConfig: { fields: [{name, label, unit}] }
+
+Para campos condicionales:
+- conditionalConfig: { dependsOn: "nombre del campo", showWhen: valor }
+
+Para campos calculados:
+- calculationFormula: fórmula de cálculo
+- measurementUnit: unidad de resultado
+
+Para campos datetime:
+- datetimeIncludeDate: true/false
+- datetimeIncludeTime: true/false
+- isVisitDate: true si es la fecha de la visita
+
+Para campos con múltiples mediciones:
+- allowMultiple: true
+- repeatCount: número de mediciones requeridas
+- requireTime: true/false
+- requireTimePerMeasurement: true/false
+- timeIntervalMinutes: intervalo entre mediciones (si aplica)
+
+IMPORTANTE:
+- Identifica claramente cada visita en la sistemática
+- Cada visita debe tener un orden secuencial
+- Las actividades dentro de cada visita deben tener un orden lógico
+- Si hay validaciones específicas (ej: IMC > 35), inclúyelas en validationRules
+- Si hay instrucciones especiales, inclúyelas en helpText o description
+- Respeta estrictamente la información proporcionada, no inventes datos
+
