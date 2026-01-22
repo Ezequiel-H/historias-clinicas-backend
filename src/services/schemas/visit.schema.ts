@@ -92,6 +92,7 @@ export const ActivitySchema = z.object({
   timeIntervalMinutes: z.number().int().positive().optional(),
   calculationFormula: z.string().optional(),
   helpText: z.string().optional(),
+  displayStructure: z.enum(['none', 'indented', 'bullets', 'numbered', 'parentheses']).optional().default('none'),
   validationRules: z.array(ActivityRuleSchema).optional(),
 });
 
