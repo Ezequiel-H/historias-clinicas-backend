@@ -93,6 +93,8 @@ export interface IActivity {
     shouldTakeOnVisitDay?: boolean;
   };
   validationRules?: IActivityRule[];
+  // Estructura de visualización en la historia clínica generada
+  displayStructure?: 'none' | 'indented' | 'bullets' | 'numbered' | 'parentheses';
 }
 
 // Visita

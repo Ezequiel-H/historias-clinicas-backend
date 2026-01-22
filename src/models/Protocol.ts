@@ -117,6 +117,11 @@ const activitySchema = new Schema<IActivity>(
     timeIntervalMinutes: Number, // Intervalo fijo en minutos entre mediciones
     calculationFormula: String, // Fórmula para campos calculados
     helpText: String,
+    displayStructure: {
+      type: String,
+      enum: ['none', 'indented', 'bullets', 'numbered', 'parentheses'],
+      default: 'none',
+    },
     medicationTrackingConfig: {
       medicationName: String,
       dosageUnit: String, // Unidad de dosis (ej: 'comprimidos', 'ml', 'gotas', etc.)

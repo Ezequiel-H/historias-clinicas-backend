@@ -530,12 +530,44 @@ function getHeaderImage(): Buffer | null {
 }
 
 // Construir descripción de una actividad individual
+// Función helper para extraer contenido entre paréntesis
+function extractParenthesesContent(value: any): string {
+  if (typeof value !== 'string') {
+    value = value?.toString() || '';
+  }
+  const match = value.match(/\(([^)]+)\)/);
+  return match ? match[1] : value;
+}
+
 function buildActivityDescription(activityData: any, activity: any, index: number): string {
   const descriptionText = activity?.description || activityData.description || '';
+  const displayStructure = activity?.displayStructure || activityData.displayStructure || 'none';
   let description = `\n${index + 1}. ${activityData.name}`;
 
   if (descriptionText) {
     description += `\n   Descripción: ${descriptionText}`;
+  }
+
+  // Agregar estructura de visualización si no es 'none'
+  if (displayStructure && displayStructure !== 'none') {
+    // Si hay múltiples valores/mediciones, enfatizar que cada uno debe ir en línea separada
+    const hasMultipleValues = (activityData.value && Array.isArray(activityData.value) && activityData.value.length > 1) ||
+      (activityData.measurements && activityData.measurements.length > 1) ||
+      (activityData.value && typeof activityData.value === 'string' && activityData.value.includes(','));
+
+    if (hasMultipleValues && displayStructure === 'indented') {
+      description += `\n   NOTA CRÍTICA: Presenta estos valores uno debajo del otro, cada uno indentado con espacios (al menos 2 espacios), integrado naturalmente en el texto narrativo. NO menciones la estructura, NO digas "con estructura de indentación", NO expliques cómo se debe mostrar. Simplemente muéstralos indentados de forma natural. Ejemplo del formato:\n"El peso del paciente es:\n  Flaco\n  Pruebinha\n  Pruebinha"`;
+    } else if (hasMultipleValues && displayStructure === 'bullets') {
+      description += `\n   NOTA CRÍTICA: Presenta estos valores con viñetas (•), uno por línea, integrado naturalmente en el texto narrativo. NO menciones la estructura, NO digas "con viñetas", NO expliques cómo se debe mostrar. Simplemente muéstralos con viñetas de forma natural. Ejemplo del formato:\n"El peso del paciente es:\n• Flaco\n• Pruebinha\n• Pruebinha"`;
+    } else if (hasMultipleValues && displayStructure === 'numbered') {
+      description += `\n   NOTA CRÍTICA: Presenta estos valores numerados (1., 2., etc.), uno por línea, integrado naturalmente en el texto narrativo. NO menciones la estructura, NO digas "numerado", NO expliques cómo se debe mostrar. Simplemente muéstralos numerados de forma natural. Ejemplo del formato:\n"El peso del paciente es:\n1. Flaco\n2. Pruebinha\n3. Pruebinha"`;
+    } else if (hasMultipleValues && displayStructure === 'parentheses') {
+      description += `\n   NOTA CRÍTICA: Presenta estos valores entre paréntesis, uno por línea. Extrae solo el contenido entre "()" de cada valor. Si no hay paréntesis, muestra el valor completo entre paréntesis. Integra esto naturalmente en el texto narrativo. NO menciones la estructura, NO digas "entre paréntesis", NO expliques cómo se debe mostrar. Simplemente muéstralos entre paréntesis de forma natural. Ejemplo del formato:\n"El peso del paciente es:\n(Flaco)\n(Pruebinha)\n(Pruebinha)"`;
+    } else if (displayStructure === 'parentheses') {
+      description += `\n   NOTA CRÍTICA: Extrae solo el contenido entre paréntesis "()" del valor. Si no hay paréntesis, muestra el valor completo entre paréntesis. NO menciones la estructura, NO expliques cómo se debe mostrar. Ejemplo: si el valor es "Descripción (Contenido)", muestra "(Contenido)" de forma natural en el texto.`;
+    } else {
+      description += `\n   NOTA CRÍTICA: Aplica la estructura especificada de forma natural en el texto, sin mencionarla ni explicarla. NO digas "con estructura de...", NO expliques la estructura, simplemente aplícala silenciosamente.`;
+    }
   }
 
   // Agregar valores
@@ -546,21 +578,117 @@ function buildActivityDescription(activityData: any, activity: any, index: numbe
         .join(', ');
       description += `\n   Valores: ${compoundValues}`;
     } else if (Array.isArray(activityData.value)) {
-      description += `\n   Mediciones: ${activityData.value.join(', ')}`;
+      // Si hay estructura requerida y es array, listar cada valor por separado
+      if (displayStructure && displayStructure !== 'none') {
+        if (displayStructure === 'indented') {
+          description += `\n   Mediciones (cada una DEBE aparecer en una línea separada, indentada con espacios):`;
+          activityData.value.forEach((val: any) => {
+            description += `\n     ${val}`;
+          });
+        } else if (displayStructure === 'bullets') {
+          description += `\n   Mediciones (cada una DEBE aparecer en una línea separada con viñeta):`;
+          activityData.value.forEach((val: any) => {
+            description += `\n     • ${val}`;
+          });
+        } else if (displayStructure === 'numbered') {
+          description += `\n   Mediciones (cada una DEBE aparecer en una línea separada numerada):`;
+          activityData.value.forEach((val: any, idx: number) => {
+            description += `\n     ${idx + 1}. ${val}`;
+          });
+        } else if (displayStructure === 'parentheses') {
+          description += `\n   Mediciones (cada una DEBE aparecer en una línea separada entre paréntesis, solo el contenido entre "()"):`;
+          activityData.value.forEach((val: any) => {
+            const extractedValue = extractParenthesesContent(val);
+            description += `\n     (${extractedValue})`;
+          });
+        }
+      } else {
+        description += `\n   Mediciones: ${activityData.value.join(', ')}`;
+      }
     } else {
-      description += `\n   Valor: ${activityData.value}`;
+      if (displayStructure === 'parentheses') {
+        const extractedValue = extractParenthesesContent(activityData.value);
+        description += `\n   Valor (solo mostrar contenido entre paréntesis): (${extractedValue})`;
+      } else {
+        description += `\n   Valor: ${activityData.value}`;
+      }
     }
   }
 
   // Agregar mediciones detalladas
   if (activityData.measurements && activityData.measurements.length > 0) {
-    description += `\n   Mediciones:`;
-    activityData.measurements.forEach((measurement: any, idx: number) => {
-      description += `\n     - Medición ${idx + 1}:`;
-      if (measurement.value !== undefined) description += ` Valor: ${measurement.value}`;
-      if (measurement.date) description += ` Fecha: ${measurement.date}`;
-      if (measurement.time) description += ` Hora: ${measurement.time}`;
-    });
+    // Si hay estructura requerida, enfatizar que cada medición debe ir en línea separada
+    if (displayStructure && displayStructure !== 'none') {
+      if (displayStructure === 'indented') {
+        description += `\n   Mediciones (cada una DEBE aparecer en una línea separada, indentada con espacios):`;
+        activityData.measurements.forEach((measurement: any, idx: number) => {
+          let measurementText = '';
+          if (measurement.value !== undefined) {
+            measurementText = measurement.value.toString();
+          }
+          if (measurement.date) measurementText += (measurementText ? ' - ' : '') + `Fecha: ${measurement.date}`;
+          if (measurement.time) measurementText += (measurementText ? ' - ' : '') + `Hora: ${measurement.time}`;
+          if (measurementText) {
+            description += `\n     ${measurementText}`;
+          } else {
+            description += `\n     Medición ${idx + 1}`;
+          }
+        });
+      } else if (displayStructure === 'bullets') {
+        description += `\n   Mediciones (cada una DEBE aparecer en una línea separada con viñeta):`;
+        activityData.measurements.forEach((measurement: any, idx: number) => {
+          let measurementText = '';
+          if (measurement.value !== undefined) {
+            measurementText = measurement.value.toString();
+          }
+          if (measurement.date) measurementText += (measurementText ? ' - ' : '') + `Fecha: ${measurement.date}`;
+          if (measurement.time) measurementText += (measurementText ? ' - ' : '') + `Hora: ${measurement.time}`;
+          if (measurementText) {
+            description += `\n     • ${measurementText}`;
+          } else {
+            description += `\n     • Medición ${idx + 1}`;
+          }
+        });
+      } else if (displayStructure === 'numbered') {
+        description += `\n   Mediciones (cada una DEBE aparecer en una línea separada numerada):`;
+        activityData.measurements.forEach((measurement: any, idx: number) => {
+          let measurementText = '';
+          if (measurement.value !== undefined) {
+            measurementText = measurement.value.toString();
+          }
+          if (measurement.date) measurementText += (measurementText ? ' - ' : '') + `Fecha: ${measurement.date}`;
+          if (measurement.time) measurementText += (measurementText ? ' - ' : '') + `Hora: ${measurement.time}`;
+          if (measurementText) {
+            description += `\n     ${idx + 1}. ${measurementText}`;
+          } else {
+            description += `\n     ${idx + 1}. Medición ${idx + 1}`;
+          }
+        });
+      } else if (displayStructure === 'parentheses') {
+        description += `\n   Mediciones (cada una DEBE aparecer en una línea separada entre paréntesis, solo el contenido entre "()"):`;
+        activityData.measurements.forEach((measurement: any, idx: number) => {
+          let measurementText = '';
+          if (measurement.value !== undefined) {
+            measurementText = extractParenthesesContent(measurement.value);
+          }
+          if (measurement.date) measurementText += (measurementText ? ' - ' : '') + `Fecha: ${measurement.date}`;
+          if (measurement.time) measurementText += (measurementText ? ' - ' : '') + `Hora: ${measurement.time}`;
+          if (measurementText) {
+            description += `\n     (${measurementText})`;
+          } else {
+            description += `\n     (Medición ${idx + 1})`;
+          }
+        });
+      }
+    } else {
+      description += `\n   Mediciones:`;
+      activityData.measurements.forEach((measurement: any, idx: number) => {
+        description += `\n     - Medición ${idx + 1}:`;
+        if (measurement.value !== undefined) description += ` Valor: ${measurement.value}`;
+        if (measurement.date) description += ` Fecha: ${measurement.date}`;
+        if (measurement.time) description += ` Hora: ${measurement.time}`;
+      });
+    }
   }
 
   // Agregar fecha y hora si existen

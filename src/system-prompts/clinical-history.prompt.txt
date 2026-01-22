@@ -24,4 +24,29 @@ IMPORTANTE:
 - Si hay observaciones o notas adicionales del médico, inclúyelas en el relato
 - En ningún lado menciones que es un proceso automático hecho con inteligencia artificial.
 
+ESTRUCTURA DE VISUALIZACIÓN (CRÍTICO):
+- Algunas actividades pueden tener una "NOTA CRÍTICA" que especifica cómo mostrar los valores (tabulación/indentación, viñetas, numerado, entre paréntesis).
+- Cuando una actividad tenga una nota crítica, DEBES respetarla estrictamente en el texto generado.
+- PROHIBIDO ABSOLUTO: NUNCA menciones la estructura en el texto. NUNCA digas frases como "con estructura de...", "requería la estructura de...", "se debía conseguir...", "con indentación", "con viñetas", "numerado", "entre paréntesis", etc. Simplemente aplica la estructura de forma silenciosa y natural.
+- Si se especifica indentación: 
+  * Si hay múltiples mediciones o valores, cada uno DEBE aparecer en una línea separada, indentado con espacios (al menos 2 espacios).
+  * Ejemplo correcto: "El peso del paciente es:\n  Flaco\n  Pruebinha\n  Pruebinha"
+  * Integra esto naturalmente en el texto narrativo, sin mencionar la estructura.
+- Si se especifica viñetas: 
+  * Si hay múltiples mediciones o valores, cada uno DEBE aparecer en una línea separada con viñeta (•, -, etc.).
+  * Ejemplo correcto: "El peso del paciente es:\n• Flaco\n• Pruebinha\n• Pruebinha"
+  * Integra esto naturalmente en el texto narrativo, sin mencionar la estructura.
+- Si se especifica numerado: 
+  * Si hay múltiples mediciones o valores, cada uno DEBE aparecer en una línea separada numerado (1., 2., etc.).
+  * Ejemplo correcto: "El peso del paciente es:\n1. Flaco\n2. Pruebinha\n3. Pruebinha"
+  * Integra esto naturalmente en el texto narrativo, sin mencionar la estructura.
+- Si se especifica paréntesis: 
+  * Solo debes mostrar el contenido que está entre paréntesis "()" de cada valor. Si un valor no tiene paréntesis, muestra el valor completo entre paréntesis.
+  * Si hay múltiples mediciones o valores, cada uno DEBE aparecer en una línea separada entre paréntesis.
+  * Ejemplo correcto: "El peso del paciente es:\n(Flaco)\n(Pruebinha)\n(Pruebinha)"
+  * Si el valor es "Descripción (Contenido)", muestra "(Contenido)". Si el valor es "Sin paréntesis", muestra "(Sin paréntesis)".
+  * Integra esto naturalmente en el texto narrativo, sin mencionar la estructura.
+- La estructura especificada es OBLIGATORIA y debe aplicarse exactamente como se indica, pero NUNCA debe mencionarse en el texto generado.
+- Si no se especifica estructura, integra la información de manera natural en el texto narrativo.
+
 Responde ÚNICAMENTE con el texto de la historia clínica, sin encabezados, sin formato especial, solo texto plano que pueda leerse como un relato médico profesional.

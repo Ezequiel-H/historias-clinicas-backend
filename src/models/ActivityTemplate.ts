@@ -112,6 +112,11 @@ const templateActivitySchema = new Schema<Omit<IActivity, 'id' | 'visitId'>>(
     timeIntervalMinutes: Number,
     calculationFormula: String,
     helpText: String,
+    displayStructure: {
+      type: String,
+      enum: ['none', 'indented', 'bullets', 'numbered', 'parentheses'],
+      default: 'none',
+    },
     medicationTrackingConfig: {
       medicationName: String,
       dosageUnit: String, // Unidad de dosis (ej: 'comprimidos', 'ml', 'gotas', etc.)
