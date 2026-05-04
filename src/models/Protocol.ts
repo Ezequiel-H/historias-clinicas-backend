@@ -157,6 +157,10 @@ const activitySchema = new Schema<IActivity>(
         },
       },
     ],
+    excludeFromRedactor: {
+      type: Boolean,
+      default: false,
+    },
   },
   { _id: true }
 );

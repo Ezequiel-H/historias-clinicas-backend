@@ -13,6 +13,27 @@ import { ProtocolGenerationSchema } from '../services/schemas/protocol.schema';
 // FUNCIONES AUXILIARES PARA GENERAR HISTORIA CLÍNICA
 // ==========================================
 
+function useMockClinicalHistoryText(): boolean {
+  const e = process.env;
+  return (
+    e.MOCK_REDACTOR_CLINICAL_HISTORY === 'true' ||
+    e.MOCK_AI_CLINICAL_HISTORY === 'true'
+  );
+}
+
+function useMockProtocolFromSystematic(): boolean {
+  const e = process.env;
+  return (
+    e.MOCK_REDACTOR_PROTOCOL_GENERATION === 'true' ||
+    e.MOCK_AI_PROTOCOL_GENERATION === 'true'
+  );
+}
+
+/** Actividad excluida del texto que recibe el redactor clínico (acepta flag con nombre anterior en BD) */
+function activityExcludedFromClinicalRedactor(activity: any): boolean {
+  return activity?.excludeFromRedactor === true || activity?.excludeFromAI === true;
+}
+
 // Validar datos de entrada para generar historia clínica
 function validateClinicalHistoryInput(visitData: any): { isValid: boolean; error?: string } {
   if (!visitData || !visitData.activities) {
@@ -573,7 +594,14 @@ function buildActivityDescription(activityData: any, activity: any, index: numbe
 // Construir descripciones de actividades (excluyendo numero_hoja)
 function buildActivitiesDescriptions(visitData: any, visit: any): string {
   const filteredActivities = visitData.activities.filter((activityData: any) => {
-    return activityData.name !== 'numero_hoja' && activityData.name?.toLowerCase() !== 'numero_hoja';
+    if (activityData.name === 'numero_hoja' || activityData.name?.toLowerCase() === 'numero_hoja') {
+      return false;
+    }
+    const activityDef = visit.activities.find((a: any) => a._id.toString() === activityData.id);
+    if (activityDef && activityExcludedFromClinicalRedactor(activityDef)) {
+      return false;
+    }
+    return true;
   });
 
   return filteredActivities
@@ -601,15 +629,13 @@ async function getAuthenticatedUser(userId: string): Promise<any> {
 
 // Generar texto de historia clínica (con o sin mock)
 async function generateClinicalHistoryText(systemPrompt: string, userPrompt: string): Promise<string> {
-  const mockAI = process.env.MOCK_AI_CLINICAL_HISTORY === 'true';
-
-  if (mockAI) {
+  if (useMockClinicalHistoryText()) {
     return "Paciente Juan Pérez, sexo masculino, de 39 años, nacido el 15/06/1985, con domicilio en Av. Siempre Viva 742, Buenos Aires, Argentina, quien concurre en el marco del protocolo Ezequiel Horowitz (PRO-1) para la visita denominada \"assassa\", correspondiente al seguimiento clínico. La evaluación se realizó el día 10/01/2025, quedando registrada dentro de la visita fechada el 26/12/2025 según cronograma del protocolo.\n\nAl inicio de la consulta se confirmó el trabajo bajo protocolo, la versión vigente del Consentimiento Informado y la firma del mismo, así como la correcta evaluación de los criterios de inclusión y exclusión. Se asignó al paciente el número IWRS-000123. Se efectuó una reinterrogación completa de antecedentes médicos, refiriendo obesidad grado I desde hace aproximadamente cinco años e hipertensión arterial leve. Niega antecedentes de diabetes mellitus tipo 2, enfermedad de la vesícula biliar, carcinoma medular de tiroides y pancreatitis. Refiere apnea obstructiva del sueño leve, sin uso de CPAP.\n\nEn cuanto a hábitos, el paciente presenta antecedente de tabaquismo previo, con inicio en 2005 y cese en diciembre de 2018, con un consumo aproximado de 10 cigarrillos diarios. Refiere consumo actual de alcohol desde el año 2003, con una frecuencia aproximada de dos veces por semana, equivalente a ocho consumos mensuales, habitualmente dos unidades de cerveza y una unidad de vino por ocasión, sin consumo de bebidas destiladas.\n\nSe reinterrogó la medicación concomitante, constatándose uso previo de medicación reductora de peso con orlistat durante seis meses en el último año, así como tratamiento con metformina 850 mg. Niega uso previo de agonistas GLP-1.\n\nEn la evaluación antropométrica se registró una talla de 175,5 cm y un peso de 92,3 kg, con un índice de masa corporal de 29,9 kg/m². Al examen físico, el paciente se encontraba en buen estado general. El examen cardiovascular mostró ruidos cardíacos rítmicos, sin soplos audibles. El examen respiratorio evidenció murmullo vesicular conservado bilateralmente. El abdomen se palpó blando y no doloroso, sin visceromegalias. El examen neurológico no mostró signos de focalización y la glándula tiroides no resultó palpable.\n\nSe realizaron mediciones de presión arterial en brazo derecho. A las 09:15 h se registró una presión arterial de 130/85 mmHg con una frecuencia cardíaca de 72 latidos por minuto, y a las 09:20 h una segunda medición mostró valores de 128/82 mmHg con una frecuencia cardíaca de 70 latidos por minuto, evidenciando cifras tensionales levemente elevadas pero estables entre ambas tomas.\n\nDurante la visita, el médico realizó la evaluación inicial de riesgo suicida mediante C-SSRS y el paciente completó el cuestionario PHQ-9, obteniendo una puntuación de 6, compatible con sintomatología depresiva leve. Se efectuó extracción de muestras de laboratorio a las 10:30 h del mismo día y se realizó entrega de muestra de orina. No correspondió la realización de test de embarazo ni determinaciones hormonales específicas por tratarse de un paciente masculino.\n\nNo se registraron eventos adversos durante el transcurso de la visita. Se brindó entrenamiento específico sobre medicación prohibida, incluyendo agonistas GLP-1, así como indicaciones dirigidas a hombres respecto a la no donación de esperma y el uso de preservativo en caso de tener pareja fértil. Finalmente, se entregó tarjeta de contacto y se indicó al paciente comunicarse con el centro ante cualquier duda o eventualidad, dejando constancia de una adecuada comprensión de las indicaciones y sin incidencias clínicas al cierre de la consulta.";
   }
 
-  const aiService = new OpenAIService();
-  console.log("prompt", aiService.buildPrompt(systemPrompt, userPrompt));
-  return await aiService.sendMessageText(systemPrompt, userPrompt);
+  const redactorService = new OpenAIService();
+  console.log("prompt", redactorService.buildPrompt(systemPrompt, userPrompt));
+  return await redactorService.sendMessageText(systemPrompt, userPrompt);
 }
 
 // Configurar headers de respuesta para PDF
@@ -1622,7 +1648,7 @@ export const protocolController = {
     }
   },
 
-  // Previsualizar texto de historia clínica con IA (sin generar PDF)
+  // Previsualizar texto de historia clínica con el redactor (sin generar PDF)
   previewClinicalHistory: async (req: Request, res: Response): Promise<void> => {
     try {
       const { protocolId, visitId } = req.params;
@@ -1677,7 +1703,7 @@ export const protocolController = {
     }
   },
 
-  // Generar historia clínica con IA
+  // Generar historia clínica con el redactor
   generateClinicalHistory: async (req: Request, res: Response): Promise<void> => {
     try {
       const { protocolId, visitId } = req.params;
@@ -1881,12 +1907,9 @@ export const protocolController = {
         return;
       }
 
-      // Verificar si usar mock o IA real
-      const mockAI = process.env.MOCK_AI_PROTOCOL_GENERATION === 'true';
-
       let generatedProtocol: any;
 
-      if (mockAI) {
+      if (useMockProtocolFromSystematic()) {
         console.log('[MOCK] Generando protocolo mock desde sistemática...');
         // Generar protocolo mock
         generatedProtocol = generateMockProtocol(systematicText);
@@ -1902,11 +1925,10 @@ export const protocolController = {
         // Leer system prompt
         const systemPrompt = readSystematicPrompt();
 
-        // Generar protocolo usando IA
-        const aiService = new OpenAIService();
+        const redactorService = new OpenAIService();
         const userPrompt = `Sistemática:\n\n${systematicText}\n\nGenera el JSON con la estructura de protocolo, visitas y actividades según la sistemática proporcionada.`;
 
-        generatedProtocol = await aiService.sendMessage(
+        generatedProtocol = await redactorService.sendMessage(
           systemPrompt,
           userPrompt,
           ProtocolGenerationSchema
@@ -1952,7 +1974,7 @@ export const protocolController = {
         if (error.message.includes('Error de validación')) {
           errorMessage = `Error en la validación de datos generados: ${error.message}`;
         } else if (error.message.includes('No se recibió respuesta')) {
-          errorMessage = 'No se recibió respuesta de la IA. Por favor, intenta nuevamente.';
+          errorMessage = 'No se recibió respuesta del redactor. Por favor, intenta nuevamente.';
         } else if (error.message.includes('Error al leer')) {
           errorMessage = error.message;
         } else {

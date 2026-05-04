@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { VisitSchema } from './visit.schema';
 
 /**
- * Schema de Zod para validación de protocolos completos generados por IA
+ * Schema de Zod para validación de protocolos completos generados desde la sistemática
  * Basado en el ejemplo JSON proporcionado y la estructura del modelo IProtocol
  */
 export const ProtocolGenerationSchema = z.object({

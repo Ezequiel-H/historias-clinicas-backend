@@ -152,6 +152,10 @@ const templateActivitySchema = new Schema<Omit<IActivity, 'id' | 'visitId'>>(
         },
       },
     ],
+    excludeFromRedactor: {
+      type: Boolean,
+      default: false,
+    },
   },
   { _id: false }
 );

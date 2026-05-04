@@ -255,14 +255,14 @@ router.post(
   protocolController.importTemplate
 );
 
-// Previsualizar texto de historia clínica con IA (sin generar PDF)
+// Previsualizar texto de historia clínica con el redactor (sin generar PDF)
 router.post(
   '/:protocolId/visits/:visitId/preview-clinical-history',
   validate([...protocolIdValidation, ...visitIdValidation]),
   protocolController.previewClinicalHistory
 );
 
-// Generar historia clínica con IA
+// Generar historia clínica con el redactor
 router.post(
   '/:protocolId/visits/:visitId/generate-clinical-history',
   validate([...protocolIdValidation, ...visitIdValidation]),

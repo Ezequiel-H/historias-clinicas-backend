@@ -49,9 +49,10 @@ CORS_ORIGIN=http://localhost:5173
 OPENAI_API_KEY=your-openai-api-key-here
 OPENAI_MODEL=gpt-5
 
-# Feature Flags
-MOCK_AI_CLINICAL_HISTORY=false  # Set to 'true' to use mock text instead of OpenAI
-MOCK_AI_PROTOCOL_GENERATION=false  # Set to 'true' to use mock protocol generation instead of OpenAI
+# Feature Flags (mockear redactor sin llamadas a OpenAI)
+MOCK_REDACTOR_CLINICAL_HISTORY=false
+MOCK_REDACTOR_PROTOCOL_GENERATION=false
+# Compatibilidad: si ya tenías las variables de mock con el nombre anterior, siguen funcionando
 ```
 
 3. **Iniciar servidor de desarrollo:**
@@ -71,9 +72,9 @@ src/
 ├── middleware/       # Middlewares (auth, validación, errores)
 ├── models/          # Modelos de Mongoose
 ├── routes/          # Definición de rutas
-├── services/        # Servicios (IA, etc)
+├── services/        # Servicios (redactor clínico, etc.)
 │   └── interfaces/  # Interfaces de servicios
-├── system-prompts/  # System prompts para IA
+├── system-prompts/  # Prompts de sistema para el redactor
 ├── types/           # Tipos de TypeScript
 ├── utils/           # Utilidades (JWT, etc)
 └── index.ts         # Punto de entrada
@@ -312,8 +313,9 @@ Los archivos compilados estarán en el directorio `dist/`
 | `JWT_SECRET` | Secreto para firmar JWT | (requerido) |
 | `JWT_EXPIRES_IN` | Tiempo de expiración del JWT | `7d` |
 | `CORS_ORIGIN` | Origen permitido para CORS | `http://localhost:5173` |
-| `MOCK_AI_CLINICAL_HISTORY` | Mockear generación de historia clínica (true/false) | `false` |
-| `OPENAI_API_KEY` | API Key de OpenAI | (requerido para servicios de IA) |
+| `MOCK_REDACTOR_CLINICAL_HISTORY` | Mockear texto de historia clínica (true/false) | `false` |
+| `MOCK_REDACTOR_PROTOCOL_GENERATION` | Mockear generación de protocolo desde sistemática (true/false) | `false` |
+| `OPENAI_API_KEY` | API Key de OpenAI | (requerido si no usás mocks) |
 | `OPENAI_MODEL` | Modelo de OpenAI a utilizar | `gpt-4` |
 
 ## 🔒 Roles de Usuario

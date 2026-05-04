@@ -1,11 +1,11 @@
 import OpenAI from 'openai';
 import { z } from 'zod';
-import { IAIService } from './interfaces/ai-service.interface';
+import { RedactorService } from './interfaces/redactor-service.interface';
 
 /**
- * Servicio de OpenAI que implementa IAIService
+ * Implementación técnica del redactor clínico vía API de OpenAI.
  */
-export class OpenAIService implements IAIService {
+export class OpenAIService implements RedactorService {
   private client: OpenAI;
 
   constructor() {
@@ -27,7 +27,7 @@ export class OpenAIService implements IAIService {
   }
 
   /**
-   * Parsea la respuesta de la IA usando un schema de Zod
+   * Parsea la respuesta del modelo usando un schema de Zod
    * Usa safeParse para mejor manejo de errores
    * Extrae JSON incluso si hay texto adicional o comentarios
    */
@@ -85,7 +85,7 @@ export class OpenAIService implements IAIService {
   }
 
   /**
-   * Envía un mensaje a la IA y retorna la respuesta parseada
+   * Envía el prompt y retorna la respuesta parseada
    */
   async sendMessage<T>(
     systemPrompt: string,
@@ -130,7 +130,7 @@ export class OpenAIService implements IAIService {
   }
 
   /**
-   * Envía un mensaje a la IA y retorna texto libre (sin schema)
+   * Envía el prompt y retorna texto libre (sin schema)
    */
   async sendMessageText(
     systemPrompt: string,
