@@ -247,8 +247,9 @@ const protocolSchema = new Schema<IProtocol>(
     },
     description: {
       type: String,
-      required: [true, 'La descripción es requerida'],
+      required: false,
       trim: true,
+      default: '',
     },
     status: {
       type: String,

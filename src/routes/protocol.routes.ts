@@ -35,7 +35,7 @@ const protocolValidation = [
   body('name').trim().notEmpty().withMessage('El nombre es requerido'),
   body('code').trim().notEmpty().withMessage('El código es requerido').toUpperCase(),
   body('sponsor').trim().notEmpty().withMessage('El sponsor es requerido'),
-  body('description').trim().notEmpty().withMessage('La descripción es requerida'),
+  body('description').optional({ values: 'falsy' }).trim(),
   body('status')
     .optional()
     .isIn(['active', 'inactive', 'draft'])
@@ -46,7 +46,7 @@ const protocolUpdateValidation = [
   body('name').optional().trim().notEmpty().withMessage('El nombre no puede estar vacío'),
   body('code').optional().trim().notEmpty().withMessage('El código no puede estar vacío').toUpperCase(),
   body('sponsor').optional().trim().notEmpty().withMessage('El sponsor no puede estar vacío'),
-  body('description').optional().trim().notEmpty().withMessage('La descripción no puede estar vacía'),
+  body('description').optional({ values: 'falsy' }).trim(),
   body('status')
     .optional()
     .isIn(['active', 'inactive', 'draft'])

@@ -869,7 +869,7 @@ export const protocolController = {
         name,
         code,
         sponsor,
-        description,
+        description: description ?? '',
         status: status || 'draft',
       });
 
