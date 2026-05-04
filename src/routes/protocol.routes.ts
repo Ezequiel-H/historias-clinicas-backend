@@ -70,6 +70,7 @@ const activityValidation = [
     .isIn([
       'text_short',
       'text_long',
+      'constant',
       'number_simple',
       'number_compound',
       'select_single',
@@ -106,6 +107,7 @@ const activityValidation = [
   body('timeIntervalMinutes').optional().isInt({ min: 1 }),
   body('calculationFormula').optional().trim(),
   body('helpText').optional().trim(),
+  body('constantText').optional().trim(),
   body('validationRules').optional().isArray(),
 ];
 

@@ -30,6 +30,7 @@ const activityValidation = [
     .isIn([
       'text_short',
       'text_long',
+      'constant',
       'number_simple',
       'number_compound',
       'select_single',
@@ -43,6 +44,7 @@ const activityValidation = [
     .withMessage('Tipo de campo inválido'),
   body('required').optional().isBoolean(),
   body('order').isInt({ min: 0 }).withMessage('El orden debe ser un número mayor o igual a 0'),
+  body('constantText').optional().trim(),
 ];
 
 // Validaciones de parámetros

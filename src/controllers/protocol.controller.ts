@@ -571,6 +571,8 @@ function buildActivityDescription(activityData: any, activity: any, index: numbe
     } else {
       description += `\n   Valor: ${activityData.value}`;
     }
+  } else if (activityData.fieldType === 'constant' && activityData.constantText) {
+    description += `\n   Valor: ${activityData.constantText}`;
   }
 
   // Agregar mediciones detalladas
@@ -625,6 +627,45 @@ ${activitiesDescriptions}`;
 // Obtener usuario autenticado
 async function getAuthenticatedUser(userId: string): Promise<any> {
   return await User.findById(userId);
+}
+
+type RedactorErrorInfo = {
+  status: number;
+  message: string;
+};
+
+function getRedactorErrorInfo(error: unknown, fallbackMessage: string): RedactorErrorInfo {
+  const defaultError = { status: 500, message: fallbackMessage };
+
+  if (!error || typeof error !== 'object') {
+    return defaultError;
+  }
+
+  const apiError = error as { status?: number; code?: string; message?: string };
+  const message = apiError.message || fallbackMessage;
+
+  if (apiError.status === 429 || apiError.code === 'rate_limit_exceeded') {
+    return {
+      status: 429,
+      message: 'El redactor clínico alcanzó su límite de uso. Intenta nuevamente en unos minutos.',
+    };
+  }
+
+  if (apiError.status === 401 || message.includes('OPENAI_API_KEY')) {
+    return {
+      status: 503,
+      message: 'El redactor clínico no está configurado correctamente en el servidor.',
+    };
+  }
+
+  if (apiError.status === 403) {
+    return {
+      status: 503,
+      message: 'El redactor clínico no tiene permisos para procesar esta solicitud en este momento.',
+    };
+  }
+
+  return defaultError;
 }
 
 // Generar texto de historia clínica (con o sin mock)
@@ -1696,9 +1737,10 @@ export const protocolController = {
       });
     } catch (error) {
       console.error('Error al previsualizar historia clínica:', error);
-      res.status(500).json({
+      const redactorError = getRedactorErrorInfo(error, 'Error al previsualizar historia clínica');
+      res.status(redactorError.status).json({
         success: false,
-        error: 'Error al previsualizar historia clínica',
+        error: redactorError.message,
       });
     }
   },
@@ -1862,9 +1904,10 @@ export const protocolController = {
       res.send(pdfBuffer);
     } catch (error) {
       console.error('Error al generar historia clínica:', error);
-      res.status(500).json({
+      const redactorError = getRedactorErrorInfo(error, 'Error al generar historia clínica');
+      res.status(redactorError.status).json({
         success: false,
-        error: 'Error al generar historia clínica',
+        error: redactorError.message,
       });
     }
   },

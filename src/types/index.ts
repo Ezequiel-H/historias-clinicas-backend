@@ -20,6 +20,7 @@ export interface IUser extends Document {
 export type FieldType = 
   | 'text_short'
   | 'text_long'
+  | 'constant'
   | 'number_simple'
   | 'number_compound'
   | 'select_single'        // Selección (radio/checkbox según selectMultiple)
@@ -82,6 +83,7 @@ export interface IActivity {
   timeIntervalMinutes?: number; // Intervalo fijo en minutos entre mediciones (solo si allowMultiple y requireTime). Si está configurado, solo se pregunta la hora de la primera medición
   calculationFormula?: string; // Fórmula para campos calculados (ej: "peso / altura")
   helpText?: string;
+  constantText?: string; // Texto fijo para campos de tipo constante
   medicationTrackingConfig?: {
     medicationName?: string;
     dosageUnit?: 'comprimidos' | 'cápsulas' | 'tabletas' | 'ml' | 'gotas' | 'sobres' | 'parches' | 'ampollas' | 'unidades';

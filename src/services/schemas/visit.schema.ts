@@ -58,6 +58,7 @@ export const ActivitySchema = z.object({
   fieldType: z.enum([
     'text_short',
     'text_long',
+    'constant',
     'number_simple',
     'number_compound',
     'select_single',
@@ -92,6 +93,7 @@ export const ActivitySchema = z.object({
   timeIntervalMinutes: z.number().int().positive().optional(),
   calculationFormula: z.string().optional(),
   helpText: z.string().optional(),
+  constantText: z.string().optional(),
   validationRules: z.array(ActivityRuleSchema).optional(),
 });
 
