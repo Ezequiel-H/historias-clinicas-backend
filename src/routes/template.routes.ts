@@ -40,6 +40,7 @@ const activityValidation = [
       'conditional',
       'calculated',
       'medication_tracking',
+      'adverse_events_list',
     ])
     .withMessage('Tipo de campo inválido'),
   body('required').optional().isBoolean(),

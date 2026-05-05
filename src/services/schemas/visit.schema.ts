@@ -52,50 +52,61 @@ export const ConditionalConfigSchema = z.object({
 /**
  * Schema de Zod para validación de actividades
  */
-export const ActivitySchema = z.object({
-  name: z.string().min(1, 'El nombre de la actividad es requerido'),
-  description: z.string().optional().default(''),
-  fieldType: z.enum([
-    'text_short',
-    'text_long',
-    'constant',
-    'number_simple',
-    'number_compound',
-    'select_single',
-    'boolean',
-    'datetime',
-    'file',
-    'conditional',
-    'calculated',
-    'medication_tracking',
-  ], {
-    errorMap: () => ({ message: 'Tipo de campo inválido' }),
-  }),
-  required: z.boolean().default(false),
-  order: z.number().int().min(0, 'El orden debe ser un número entero positivo'),
-  measurementUnit: z.string().optional(),
-  expectedMin: z.number().optional(),
-  expectedMax: z.number().optional(),
-  decimalPlaces: z.number().int().min(0).max(10).optional(),
-  options: z.array(SelectOptionSchema).optional(),
-  selectMultiple: z.boolean().optional().default(false),
-  allowCustomOptions: z.boolean().optional().default(false),
-  compoundConfig: CompoundFieldConfigSchema.optional(),
-  conditionalConfig: ConditionalConfigSchema.optional(),
-  allowMultiple: z.boolean().optional(),
-  repeatCount: z.number().int().positive().optional(),
-  datetimeIncludeDate: z.boolean().optional().default(true),
-  datetimeIncludeTime: z.boolean().optional().default(false),
-  requireDate: z.boolean().optional().default(false),
-  requireTime: z.boolean().optional().default(false),
-  requireDatePerMeasurement: z.boolean().optional().default(true),
-  requireTimePerMeasurement: z.boolean().optional().default(true),
-  timeIntervalMinutes: z.number().int().positive().optional(),
-  calculationFormula: z.string().optional(),
-  helpText: z.string().optional(),
-  constantText: z.string().optional(),
-  validationRules: z.array(ActivityRuleSchema).optional(),
-});
+export const ActivitySchema = z
+  .object({
+    name: z.string().min(1, 'El nombre de la actividad es requerido'),
+    description: z.string().optional().default(''),
+    fieldType: z.enum([
+      'text_short',
+      'text_long',
+      'constant',
+      'number_simple',
+      'number_compound',
+      'select_single',
+      'boolean',
+      'datetime',
+      'file',
+      'conditional',
+      'calculated',
+      'medication_tracking',
+      'adverse_events_list',
+    ], {
+      errorMap: () => ({ message: 'Tipo de campo inválido' }),
+    }),
+    required: z.boolean().default(false),
+    order: z.number().int().min(0, 'El orden debe ser un número entero positivo'),
+    measurementUnit: z.string().optional(),
+    expectedMin: z.number().optional(),
+    expectedMax: z.number().optional(),
+    decimalPlaces: z.number().int().min(0).max(10).optional(),
+    options: z.array(SelectOptionSchema).optional(),
+    selectMultiple: z.boolean().optional().default(false),
+    allowCustomOptions: z.boolean().optional().default(false),
+    compoundConfig: CompoundFieldConfigSchema.optional(),
+    conditionalConfig: ConditionalConfigSchema.optional(),
+    allowMultiple: z.boolean().optional(),
+    repeatCount: z.number().int().positive().optional(),
+    datetimeIncludeDate: z.boolean().optional().default(true),
+    datetimeIncludeTime: z.boolean().optional().default(false),
+    requireDate: z.boolean().optional().default(false),
+    requireTime: z.boolean().optional().default(false),
+    requireDatePerMeasurement: z.boolean().optional().default(true),
+    requireTimePerMeasurement: z.boolean().optional().default(true),
+    timeIntervalMinutes: z.number().int().positive().optional(),
+    calculationFormula: z.string().optional(),
+    helpText: z.string().optional(),
+    constantText: z.string().optional(),
+    validationRules: z.array(ActivityRuleSchema).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.fieldType === 'adverse_events_list' && (!data.options || data.options.length < 1)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Lista de eventos adversos requiere al menos una opción de tipo de evento',
+        path: ['options'],
+      });
+    }
+  });
 
 /**
  * Schema de Zod para validación de visitas

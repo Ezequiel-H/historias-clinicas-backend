@@ -144,13 +144,13 @@ export const authController = {
   // Registrar nuevo doctor (público)
   signup: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { email, password, firstName, lastName, licenseNumber, sealSignaturePhoto } = req.body;
+      const { email, password, firstName, lastName } = req.body;
 
       // Validar campos requeridos
-      if (!email || !password || !firstName || !lastName || !licenseNumber || !sealSignaturePhoto) {
+      if (!email || !password || !firstName || !lastName) {
         res.status(400).json({
           success: false,
-          error: 'Todos los campos son requeridos, incluyendo la foto de sello y firma',
+          error: 'Todos los campos son requeridos',
         });
         return;
       }
@@ -166,17 +166,6 @@ export const authController = {
         return;
       }
 
-      // Verificar si el número de licencia ya existe
-      const existingLicense = await User.findOne({ licenseNumber });
-
-      if (existingLicense) {
-        res.status(400).json({
-          success: false,
-          error: 'El número de licencia ya está registrado',
-        });
-        return;
-      }
-
       // Crear nombre completo
       const name = `${firstName} ${lastName}`.trim();
 
@@ -187,8 +176,6 @@ export const authController = {
         name,
         firstName,
         lastName,
-        licenseNumber,
-        sealSignaturePhoto,
         role: 'doctor',
         isActive: false, // Requiere aprobación del admin
       });
@@ -215,10 +202,9 @@ export const authController = {
       
       // Manejar errores de validación de MongoDB
       if (error.code === 11000) {
-        const field = Object.keys(error.keyPattern)[0];
         res.status(400).json({
           success: false,
-          error: `El ${field === 'email' ? 'email' : 'número de licencia'} ya está registrado`,
+          error: 'El email ya está registrado',
         });
         return;
       }
@@ -314,65 +300,6 @@ export const authController = {
       res.status(500).json({
         success: false,
         error: 'Error al actualizar estado del usuario',
-      });
-    }
-  },
-
-  // Actualizar foto de firma de un usuario (solo admins)
-  updateUserSignaturePhoto: async (req: Request, res: Response): Promise<void> => {
-    try {
-      const { id } = req.params;
-      const { sealSignaturePhoto } = req.body;
-
-      if (!sealSignaturePhoto || typeof sealSignaturePhoto !== 'string') {
-        res.status(400).json({
-          success: false,
-          error: 'La foto de sello y firma es requerida',
-        });
-        return;
-      }
-
-      // Validar que sea una imagen base64 válida
-      if (!sealSignaturePhoto.startsWith('data:image/')) {
-        res.status(400).json({
-          success: false,
-          error: 'La foto debe ser una imagen válida en formato base64',
-        });
-        return;
-      }
-
-      const user = await User.findById(id);
-
-      if (!user) {
-        res.status(404).json({
-          success: false,
-          error: 'Usuario no encontrado',
-        });
-        return;
-      }
-
-      // Solo permitir actualizar foto de doctores
-      if (user.role !== 'doctor') {
-        res.status(400).json({
-          success: false,
-          error: 'Solo se puede actualizar la foto de firma de médicos',
-        });
-        return;
-      }
-
-      user.sealSignaturePhoto = sealSignaturePhoto;
-      await user.save();
-
-      res.json({
-        success: true,
-        data: user.toJSON(),
-        message: 'Foto de firma actualizada exitosamente',
-      });
-    } catch (error) {
-      console.error('Error al actualizar foto de firma:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Error al actualizar foto de firma',
       });
     }
   },

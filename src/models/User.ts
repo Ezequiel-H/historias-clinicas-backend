@@ -31,15 +31,6 @@ const userSchema = new Schema<IUser>(
       type: String,
       trim: true,
     },
-    licenseNumber: {
-      type: String,
-      trim: true,
-      unique: true,
-      sparse: true, // Permite múltiples null/undefined
-    },
-    sealSignaturePhoto: {
-      type: String, // Base64 encoded image
-    },
     role: {
       type: String,
       enum: {

@@ -7,8 +7,6 @@ export interface IUser extends Document {
   name: string;
   firstName?: string;
   lastName?: string;
-  licenseNumber?: string;
-  sealSignaturePhoto?: string; // Base64 encoded image
   role: 'admin' | 'doctor' | 'investigador_principal';
   isActive: boolean;
   createdAt: Date;
@@ -29,7 +27,8 @@ export type FieldType =
   | 'file'
   | 'conditional'
   | 'calculated'
-  | 'medication_tracking'; // Seguimiento de medicación
+  | 'medication_tracking' // Seguimiento de medicación
+  | 'adverse_events_list'; // Lista de eventos adversos (estructura fija + options = tipos de evento)
 
 // Configuración de campo compuesto
 export interface CompoundFieldConfig {
@@ -46,6 +45,23 @@ export interface SelectOption {
   label: string;
   required?: boolean;      // Si es true, esta opción debe ser seleccionada obligatoriamente
   exclusive?: boolean;     // Si es true, si se selecciona esta opción, el paciente NO califica
+}
+
+/** Valor reservado en UI para tipo de evento "Otro" (no debe aparecer en activity.options) */
+export const ADVERSE_EVENT_TYPE_OTHER = '__other__';
+
+/** Un evento en fieldType adverse_events_list (valor persistido / JSON de visita) */
+export interface AdverseEventItem {
+  eventType: string;
+  eventTypeOther?: string;
+  startDate: string;
+  endDate?: string;
+  seriousness: 'serious' | 'not_serious' | 'other';
+  seriousnessOther?: string;
+  intensity: 'mild' | 'moderate' | 'severe';
+  relatedToBaselineDisease: boolean;
+  relatedToStudyMedication: boolean;
+  relatedToStudyProcedure: boolean;
 }
 
 // Configuración de campo condicional

@@ -31,6 +31,7 @@ const templateActivitySchema = new Schema<Omit<IActivity, 'id' | 'visitId'>>(
         'conditional',
         'calculated',
         'medication_tracking',
+        'adverse_events_list',
       ],
     },
     required: {

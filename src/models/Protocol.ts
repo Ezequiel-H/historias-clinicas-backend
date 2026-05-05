@@ -31,6 +31,7 @@ const activitySchema = new Schema<IActivity>(
         'conditional',
         'calculated',
         'medication_tracking',
+        'adverse_events_list',
       ],
     },
     required: {

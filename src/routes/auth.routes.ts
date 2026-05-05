@@ -51,37 +51,12 @@ const signupValidation = [
     .trim()
     .notEmpty()
     .withMessage('El apellido es requerido'),
-  body('licenseNumber')
-    .trim()
-    .notEmpty()
-    .withMessage('El número de licencia es requerido')
-    .isNumeric()
-    .withMessage('El número de licencia debe ser solo números'),
-  body('sealSignaturePhoto')
-    .notEmpty()
-    .withMessage('La foto de sello y firma es requerida')
-    .isString()
-    .withMessage('La foto debe ser una cadena base64 válida'),
 ];
 
 const updateUserStatusValidation = [
   body('isActive')
     .isBoolean()
     .withMessage('isActive debe ser un valor booleano'),
-];
-
-const updateSignaturePhotoValidation = [
-  body('sealSignaturePhoto')
-    .notEmpty()
-    .withMessage('La foto de sello y firma es requerida')
-    .isString()
-    .withMessage('La foto debe ser una cadena base64 válida')
-    .custom((value) => {
-      if (!value.startsWith('data:image/')) {
-        throw new Error('La foto debe ser una imagen válida en formato base64');
-      }
-      return true;
-    }),
 ];
 
 // Rutas públicas
@@ -114,14 +89,6 @@ router.patch(
   checkRole('admin'),
   validate(updateUserStatusValidation),
   authController.updateUserStatus
-);
-
-router.patch(
-  '/users/:id/signature-photo',
-  authMiddleware,
-  checkRole('admin'),
-  validate(updateSignaturePhotoValidation),
-  authController.updateUserSignaturePhoto
 );
 
 export default router;
