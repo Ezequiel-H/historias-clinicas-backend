@@ -126,12 +126,15 @@ export interface IVisit {
 // Regla Clínica (para actividades)
 export interface IActivityRule {
   name: string;
-  condition: 'range' | 'min' | 'max' | 'equals' | 'not_equals' | 'formula';
+  condition: 'range' | 'min' | 'max' | 'equals' | 'not_equals' | 'formula' | 'time_between';
   minValue?: number;
   maxValue?: number;
   value?: string | number;
   formula?: string; // Ej: "peso * 10 + altura"
   formulaOperator?: '>' | '<' | '>=' | '<=' | '==' | '!='; // Operador de comparación para fórmulas
+  sourceActivityId?: string;
+  minMinutes?: number;
+  maxMinutes?: number;
   severity: 'warning' | 'error'; // warning = alerta, error = bloqueo
   message: string;
   isActive: boolean;

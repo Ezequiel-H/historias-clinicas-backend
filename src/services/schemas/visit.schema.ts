@@ -5,7 +5,7 @@ import { z } from 'zod';
  */
 export const ActivityRuleSchema = z.object({
   name: z.string().min(1, 'El nombre de la regla es requerido'),
-  condition: z.enum(['range', 'min', 'max', 'equals', 'not_equals', 'formula'], {
+  condition: z.enum(['range', 'min', 'max', 'equals', 'not_equals', 'formula', 'time_between'], {
     errorMap: () => ({ message: 'Condición inválida' }),
   }),
   minValue: z.number().optional(),
@@ -13,6 +13,9 @@ export const ActivityRuleSchema = z.object({
   value: z.union([z.string(), z.number()]).optional(),
   formula: z.string().optional(),
   formulaOperator: z.enum(['>', '<', '>=', '<=', '==', '!=']).optional(),
+  sourceActivityId: z.string().optional(),
+  minMinutes: z.number().optional(),
+  maxMinutes: z.number().optional(),
   severity: z.enum(['warning', 'error']).default('warning'),
   message: z.string().min(1, 'El mensaje es requerido'),
   isActive: z.boolean().default(true),

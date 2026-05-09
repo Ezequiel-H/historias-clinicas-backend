@@ -133,7 +133,7 @@ const activitySchema = new Schema<IActivity>(
         name: String,
         condition: {
           type: String,
-          enum: ['range', 'min', 'max', 'equals', 'not_equals', 'formula'],
+          enum: ['range', 'min', 'max', 'equals', 'not_equals', 'formula', 'time_between'],
         },
         minValue: Number,
         maxValue: Number,
@@ -143,6 +143,9 @@ const activitySchema = new Schema<IActivity>(
           type: String,
           enum: ['>', '<', '>=', '<=', '==', '!='],
         },
+        sourceActivityId: String,
+        minMinutes: Number,
+        maxMinutes: Number,
         severity: {
           type: String,
           enum: ['warning', 'error'],
